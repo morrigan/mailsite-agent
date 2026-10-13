@@ -1,0 +1,21 @@
+# Run mailsite-agent in a container. Paths are relative to this file, and assume
+# the standard layout where mailsite-agent/ sits directly inside the hub:
+#
+#   <hub>/clients.json, .env, sites/, logs/, active-agent → …
+#   <hub>/mailsite-agent/        (this repo; build context)
+#
+# Usage from the hub root:
+#   docker compose -f mailsite-agent/docker/docker-compose.yml up -d --build
+services:
+  mailsite-agent:
+    build:
+      context: ..                  # the mailsite-agent dir
+      dockerfile: docker/Dockerfile
+    volumes:
+      - ../../:/hub                # mount the whole hub (config + sites + repo)
+    env_file:
+      - ../../.env                 # NETLIFY_AUTH_TOKEN, provider creds, GH_TOKEN, ANTHROPIC_API_KEY
+    environment:
+      MAILSITE_HUB: /hub
+      MAILSITE_INTERVAL: "600"
+    restart: unless-stopped
