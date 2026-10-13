@@ -131,6 +131,7 @@ async function main() {
   say();
   say(C.b('  mailsite-agent setup'));
   say(C.dim(`  hub: ${HUB}`));
+  say(C.dim('  every prompt is explained in mailsite-agent/docs/wizard.md'));
   say();
 
   const env = {};   // collected .env values
