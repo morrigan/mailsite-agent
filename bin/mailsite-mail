@@ -1,0 +1,93 @@
+#!/usr/bin/env node
+/**
+ * mailsite-mail — the MAIL port for mailsite-agent.
+ *
+ * Agent-neutral CLI: every subcommand prints JSON to stdout and exits non-zero
+ * on error. The agent (Claude, Goose, …) never touches a mail API directly.
+ *
+ * Providers are pluggable (bin/lib/providers/*). Each clients.json names a
+ * READ provider (must be pollable) and an optional SEND provider:
+ *
+ *   "mail": { "read": "gmail", "send": "resend" }
+ *
+ *   read:  gmail | imap            (imap covers ProtonMail-via-Bridge, Fastmail, …)
+ *   send:  gmail | imap | resend   (defaults to the read provider)
+ *
+ * Read subcommands use the read provider; `reply` uses the send provider.
+ *
+ * Subcommands:
+ *   fetch-new [--label <State>]
+ *   get <msgId>
+ *   download-attachments <msgId> <destDir>
+ *   reply <msgId> --body-file <file>
+ *   label <msgId> <State>
+ *   thread-replies <msgId> --since <iso8601>
+ */
+'use strict';
+
+const fs = require('fs');
+const { STATES, die, out, loadEnv, loadConfig, parseFlags, reSubject } = require('./lib/common');
+
+function loadProvider(name) {
+  try { return require(`./lib/providers/${name}`); }
+  catch { die(`Unknown mail provider: ${name}`); }
+}
+
+async function main() {
+  const [cmd, ...rest] = process.argv.slice(2);
+  if (cmd === undefined || cmd === '--help' || cmd === 'help') {
+    process.stdout.write(
+      'mailsite-mail <fetch-new|get|download-attachments|reply|label|thread-replies>\n' +
+      'See the top of this file for usage.\n');
+    return;
+  }
+
+  const hubRoot = process.env.MAILSITE_HUB || process.cwd();
+  loadEnv(hubRoot);
+  const cfg = loadConfig(hubRoot);
+  const reader = loadProvider(cfg.mail.read);
+  const sender = loadProvider(cfg.mail.send);
+  if (!reader.canRead) die(`mail.read provider "${cfg.mail.read}" cannot read mail.`);
+  if (!sender.canSend) die(`mail.send provider "${cfg.mail.send}" cannot send mail.`);
+
+  const { flags, positional } = parseFlags(rest);
+  const [a, b] = positional;
+
+  switch (cmd) {
+    case 'fetch-new':
+      return out(await reader.fetchNew(cfg, { label: flags.label }));
+    case 'get':
+      if (!a) die('usage: get <msgId>');
+      return out(await reader.get(cfg, a));
+    case 'download-attachments':
+      if (!a || !b) die('usage: download-attachments <msgId> <destDir>');
+      return out(await reader.downloadAttachments(cfg, a, b));
+    case 'label':
+      if (!a || !b) die('usage: label <msgId> <State>');
+      if (!STATES.includes(b)) die(`Unknown state: ${b} (one of ${STATES.join(', ')})`);
+      return out(await reader.label(cfg, a, b));
+    case 'thread-replies':
+      if (!a) die('usage: thread-replies <msgId> --since <iso8601>');
+      return out(await reader.threadReplies(cfg, a, flags.since));
+    case 'reply': {
+      if (!a || !flags['body-file']) die('usage: reply <msgId> --body-file <file>');
+      const body = fs.readFileSync(flags['body-file'], 'utf8');
+      // The read provider knows the original's recipient + threading headers;
+      // the send provider delivers the reply.
+      const orig = await reader.get(cfg, a);
+      const result = await sender.send(cfg, {
+        to: orig.from,
+        subject: reSubject(orig.subject),
+        inReplyTo: orig.messageIdHeader,
+        references: orig.messageIdHeader,
+        threadId: orig.threadId,
+        body,
+      });
+      return out({ msgId: a, replied: true, via: cfg.mail.send, ...result });
+    }
+    default:
+      die(`Unknown command: ${cmd}`);
+  }
+}
+
+main().catch((e) => die(e && e.stack ? e.stack : e));
