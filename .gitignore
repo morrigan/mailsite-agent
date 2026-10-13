@@ -1,0 +1,5 @@
+node_modules/
+*.log
+.DS_Store
+# Private per-user data lives in the parent hub, never in this repo:
+# clients.json, .env, sites/, logs/ — see README.

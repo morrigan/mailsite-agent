@@ -1,0 +1,27 @@
+{
+  "name": "mailsite-agent",
+  "version": "0.1.0",
+  "description": "Let non-technical site owners update their static website by email; an agent applies the change, previews it, and publishes on approval.",
+  "license": "MIT",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "mailsite-mail": "bin/mailsite-mail",
+    "mailsite-deploy": "bin/mailsite-deploy"
+  },
+  "scripts": {
+    "doctor": "bash scripts/doctor.sh",
+    "mail": "node bin/mailsite-mail",
+    "deploy": "node bin/mailsite-deploy"
+  },
+  "optionalDependencies": {
+    "imapflow": "^1.0.164",
+    "mailparser": "^3.7.1",
+    "nodemailer": "^6.9.14"
+  },
+  "comments": {
+    "dependencies": "Core (gmail + resend providers) is dependency-free and uses built-in fetch. The three optionalDependencies are ONLY needed for the IMAP provider (ProtonMail-via-Bridge, Fastmail, generic IMAP). npm install pulls them when available; if they're missing the IMAP provider prints an install hint."
+  }
+}
