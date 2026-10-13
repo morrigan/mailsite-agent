@@ -1,0 +1,23 @@
+{
+  "$comment": "Symlink this to <hub>/.claude/settings.json (see adapters/claude-code/install.md). Pre-grants the capability CLIs + git/gh so headless `claude -p` runs never prompt. Deliberately does NOT allow arbitrary Bash.",
+  "permissions": {
+    "allow": [
+      "Read",
+      "Edit",
+      "Write",
+      "Bash(node mailsite-agent/bin/mailsite-mail:*)",
+      "Bash(node mailsite-agent/bin/mailsite-deploy:*)",
+      "Bash(mailsite-agent/bin/mailsite-mail:*)",
+      "Bash(mailsite-agent/bin/mailsite-deploy:*)",
+      "Bash(mailsite-agent/scripts/optimize-image.sh:*)",
+      "Bash(git:*)",
+      "Bash(gh:*)"
+    ],
+    "deny": [
+      "Bash(rm -rf:*)",
+      "Read(./.env)",
+      "Read(**/.env)"
+    ]
+  },
+  "enableAllProjectMcpServers": false
+}
