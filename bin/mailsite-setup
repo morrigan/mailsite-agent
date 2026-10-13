@@ -74,6 +74,27 @@ async function yesno(label, def = true) {
 const isEmail = (s) => (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s) ? null : 'enter a valid email');
 const isSlug = (s) => (/^[a-z0-9][a-z0-9-]*$/.test(s) ? null : 'lowercase letters, numbers, hyphens');
 
+const HELP = `mailsite-setup — first-run wizard for mailsite-agent
+
+Usage:
+  node mailsite-agent/bin/mailsite-setup       run interactively
+  node mailsite-agent/bin/mailsite-setup -h    show this help
+
+Run it from your hub directory (the folder containing mailsite-agent/). It asks
+for your runner, mail provider(s) + credentials, and a first client + host, then:
+  • writes <hub>/clients.json and <hub>/.env (preserving existing keys/comments)
+  • creates the active-agent symlink (+ .claude wiring for the Claude runner)
+  • prints next steps tailored to native vs Docker.
+It never overwrites clients.json/.env without confirming.
+
+Scripted / CI installs:
+  It reads answers as lines from stdin, so you can pipe them (empty line = the
+  shown default). Prompts appear in order; e.g.:
+
+    printf '%s\\n' 1 1 1 updates@you.com '' '' '' '' acme '' owner@you.com \\
+      s3cretword '' 1 acme '' '' '' '' 1 n | node mailsite-agent/bin/mailsite-setup
+`;
+
 /** Parse an .env file into a {KEY: value} map. */
 function parseEnv(file) {
   const out = {};
@@ -104,6 +125,9 @@ function makeSymlink(linkAbs, target) {
 }
 
 async function main() {
+  const argv = process.argv.slice(2);
+  if (argv.includes('-h') || argv.includes('--help')) { process.stdout.write(HELP); return; }
+
   say();
   say(C.b('  mailsite-agent setup'));
   say(C.dim(`  hub: ${HUB}`));
@@ -303,5 +327,5 @@ async function main() {
 }
 
 main()
-  .then(() => { process.stdin.unref(); })
+  .then(() => { try { process.stdin.pause(); } catch { /* ignore */ } })
   .catch((e) => { process.stderr.write((e.stack || String(e)) + '\n'); process.exit(1); });

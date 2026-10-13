@@ -16,6 +16,16 @@ const path = require('path');
 const { spawn } = require('child_process');
 const { loadEnv, die } = require('./lib/common');
 
+if (process.argv.includes('-h') || process.argv.includes('--help')) {
+  process.stdout.write(
+    'mailsite-resend-listener — Resend inbound mode\n\n' +
+    'Runs `resend emails receiving listen --json` and writes each inbound email to\n' +
+    '<hub>/logs/resend-inbox/<id>.json for the resend read provider to poll. Keep it\n' +
+    'running under a supervisor (launchd KeepAlive / Docker restart).\n\n' +
+    'Needs: the `resend` CLI (npm i -g resend-cli) and RESEND_API_KEY in <hub>/.env.\n');
+  process.exit(0);
+}
+
 const hubRoot = process.env.MAILSITE_HUB || process.cwd();
 loadEnv(hubRoot);
 if (!process.env.RESEND_API_KEY) die('Missing RESEND_API_KEY in .env');
