@@ -23,8 +23,8 @@ error. Never reach past them to raw APIs.
 | mail   | `bin/mailsite-mail reply <msgId> --body-file <f>`             | reply in-thread |
 | mail   | `bin/mailsite-mail label <msgId> <State>`                     | set state label (removes other state labels) |
 | mail   | `bin/mailsite-mail thread-replies <msgId> --since <iso>`      | replies in a thread after a time |
-| deploy | `bin/mailsite-deploy preview-status <clientId> <branch>`      | poll deploy preview; prints `{state,url}` |
-| deploy | `bin/mailsite-deploy prod-status <clientId>`                  | latest production deploy state |
+| deploy | `bin/mailsite-deploy preview <clientId> --branch <b> [--pr <n>]` | wait for the branch's deploy preview; prints `{state,url}` |
+| deploy | `bin/mailsite-deploy publish <clientId>`                      | wait for the production deploy; prints `{state,url}` |
 | image  | `scripts/optimize-image.sh <in> <out>`                        | resize, strip EXIF, re-encode |
 | vcs    | `git`, `gh`                                                    | branch / commit / push / PR / merge |
 
@@ -58,15 +58,18 @@ mail labels + git branches, so every run is idempotent — safe to re-run.
       asset/image directory (match where current images live). Pick descriptive
       filenames from context; never overwrite an existing file unless the request
       clearly means "replace this photo".
-   g. **(your judgment)** Apply the requested text/content change. Read the
-      relevant page(s), locate the section the owner means, and edit in the
-      existing markup style. Content only — see Guardrails.
+   g. **(your judgment — this is the whole point of using an agent)** Author the
+      requested change directly in the site's source. Read the relevant page(s),
+      locate the section the owner means, and write new HTML/content that matches
+      the existing markup and style. This authoring step is yours; everything
+      around it is a CLI call. Content only — see Guardrails.
    h. `git add -A && git commit` with a message summarizing the request. Push the
       branch. `gh pr create` with a title + body summarizing the change.
-   i. Derive the branch name and call
-      `bin/mailsite-deploy preview-status <clientId> <branch>` — poll (it blocks
-      up to its timeout) until `state=="ready"`. On `state=="error"` →
-      `label NeedsHuman`, notify developer (see step 4), skip.
+   i. Call `bin/mailsite-deploy preview <clientId> --branch <branch> --pr <PR#>`
+      — it blocks until the deploy preview is `ready` (works the same whether the
+      client is on Netlify or Cloudflare; the provider is read from config). On
+      `state=="error"` or `"timeout"` → `label NeedsHuman`, notify developer
+      (see Error handling), skip.
    j. Write a plain-language summary to a temp file: what you changed, the preview
       URL, and the line *"Reply APPROVE to publish, or just reply telling me what
       to fix."* Then `reply <msgId> --body-file <that file>`.
@@ -81,8 +84,8 @@ mail labels + git branches, so every run is idempotent — safe to re-run.
    latest reply **from an authorized sender** of that client:
    - **Approval** (body matches `approve`/`publish`/`go live`, case-insensitive):
      `gh pr merge` the client's PR into `<productionBranch>` (squash). Wait for
-     `bin/mailsite-deploy prod-status <clientId>` to reach `ready`. `reply` with
-     "✅ Your changes are live at <site URL>." `label <msgId> Published`.
+     `bin/mailsite-deploy publish <clientId>` to reach `ready`. `reply` with
+     "✅ Your changes are live at <url from that command>." `label <msgId> Published`.
    - **Correction** (anything else substantive): treat the reply body as a new
      change request on the **same branch**. Re-apply edits, push, re-poll the
      preview, `reply` with the new preview URL. Keep `AwaitingApproval`.

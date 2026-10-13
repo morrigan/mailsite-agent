@@ -24,8 +24,8 @@ Use the capability CLIs for everything deterministic. From the hub root:
 - `bin/mailsite-mail reply <msgId> --body-file <file>`
 - `bin/mailsite-mail label <msgId> <State>`
 - `bin/mailsite-mail thread-replies <msgId> --since <iso>`
-- `bin/mailsite-deploy preview-status <clientId> <branch>`
-- `bin/mailsite-deploy prod-status <clientId>`
+- `bin/mailsite-deploy preview <clientId> --branch <b> --pr <n>`
+- `bin/mailsite-deploy publish <clientId>`  (host is per-client: netlify | cloudflare)
 - `scripts/optimize-image.sh <in> <out>`
 - `git` and `gh` for branch / commit / push / PR / merge.
 

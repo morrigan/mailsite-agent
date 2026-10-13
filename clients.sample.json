@@ -25,10 +25,31 @@
       "secretWord": "sunflower-pancake",
       "repoPath": "sites/acme-cafe",
       "productionBranch": "main",
-      "netlifySiteName": "acme-cafe",
-      "netlifySiteId": "00000000-0000-0000-0000-000000000000",
+      "hosting": {
+        "provider": "netlify",
+        "netlify": {
+          "siteName": "acme-cafe",
+          "siteId": "00000000-0000-0000-0000-000000000000"
+        }
+      },
       "replyTo": "owner@acmecafe.com",
       "assetDirHint": "assets/img"
+    },
+    {
+      "id": "jane-studio",
+      "name": "Jane Studio",
+      "authorizedSenders": ["jane@janestudio.com"],
+      "secretWord": "lavender-canvas",
+      "repoPath": "sites/jane-studio",
+      "productionBranch": "main",
+      "hosting": {
+        "provider": "cloudflare",
+        "cloudflare": {
+          "projectName": "jane-studio"
+        }
+      },
+      "replyTo": "jane@janestudio.com",
+      "assetDirHint": "images"
     }
   ]
 }

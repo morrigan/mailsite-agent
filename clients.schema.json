@@ -91,13 +91,42 @@
           "description": "Path to the local clone, relative to the hub root."
         },
         "productionBranch": { "type": "string", "default": "main" },
+        "hosting": {
+          "type": "object",
+          "description": "Which host this site deploys to, and its settings.",
+          "required": ["provider"],
+          "additionalProperties": false,
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": ["netlify", "cloudflare"],
+              "description": "Hosting provider. Deploys are triggered by git push; the deploy port observes state and resolves URLs."
+            },
+            "netlify": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "siteName": { "type": "string", "description": "Used to build the deploy-preview URL." },
+                "siteId": { "type": "string", "description": "Netlify site API ID, used to poll deploy state." }
+              }
+            },
+            "cloudflare": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "projectName": { "type": "string", "description": "Cloudflare Pages project name." },
+                "accountId": { "type": "string", "description": "Account ID (or set CLOUDFLARE_ACCOUNT_ID in .env)." }
+              }
+            }
+          }
+        },
         "netlifySiteName": {
           "type": "string",
-          "description": "Netlify site name, used to build the deploy-preview URL."
+          "description": "Deprecated: use hosting.netlify.siteName. Kept for backward compatibility."
         },
         "netlifySiteId": {
           "type": "string",
-          "description": "Netlify site API ID, used to poll deploy state."
+          "description": "Deprecated: use hosting.netlify.siteId. Kept for backward compatibility."
         },
         "replyTo": {
           "type": "string",

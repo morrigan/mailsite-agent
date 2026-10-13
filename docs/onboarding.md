@@ -3,13 +3,15 @@
 Do this once per site you hand off. (Mail providers are configured once,
 globally — see [providers.md](providers.md) — not per client.)
 
-## 1. The site must be a GitHub repo on Netlify with PR previews
+## 1. The site must be a GitHub repo on a host with branch/PR previews
 
 - The static site lives in its own GitHub repo.
-- The repo is linked to a Netlify site.
-- **Deploy Previews are enabled** (Netlify → Site → Build & deploy → Deploy
-  Previews → "Deploy Previews from Pull Requests"). This is what gives the owner
-  a preview URL before anything goes live.
+- The repo is connected to a hosting provider ([Netlify or Cloudflare Pages](hosting.md)).
+- **Deploy previews are enabled** so a branch/PR gets a preview URL before
+  anything goes live:
+  - *Netlify*: Site → Build & deploy → Deploy Previews → "from Pull Requests".
+  - *Cloudflare Pages*: preview deployments are on by default for non-production
+    branches.
 
 ## 2. Clone it into the hub
 
@@ -28,8 +30,11 @@ git clone git@github.com:owner/their-site.git sites/<client-id>
   "secretWord": "pick-something-memorable",   // 6+ chars; share privately
   "repoPath": "sites/their-slug",
   "productionBranch": "main",
-  "netlifySiteName": "their-netlify-site",     // from the *.netlify.app subdomain
-  "netlifySiteId": "<site API ID>",            // Netlify → Site settings → General
+  "hosting": {                                 // pick one — see docs/hosting.md
+    "provider": "netlify",
+    "netlify": { "siteName": "their-netlify-site", "siteId": "<site API ID>" }
+    // or: "provider": "cloudflare", "cloudflare": { "projectName": "their-project" }
+  },
   "replyTo": "owner@example.com",
   "assetDirHint": "assets/img"                 // optional: where images live
 }

@@ -29,8 +29,8 @@ instructions: |
     node bin/mailsite-mail reply <msgId> --body-file <file>
     node bin/mailsite-mail label <msgId> <State>
     node bin/mailsite-mail thread-replies <msgId> --since <iso>
-    node bin/mailsite-deploy preview-status <clientId> <branch>
-    node bin/mailsite-deploy prod-status <clientId>
+    node bin/mailsite-deploy preview <clientId> --branch <b> --pr <n>
+    node bin/mailsite-deploy publish <clientId>
     scripts/optimize-image.sh <in> <out>
     git / gh for branch, commit, push, PR, merge.
 

@@ -27,14 +27,18 @@ send). No other file changes.
 
 ### Deploy port — `bin/mailsite-deploy`
 
+Pluggable hosts (`bin/lib/deploy/*`), chosen per client via `hosting.provider`.
+Ships with `netlify` and `cloudflare`.
+
 | Subcommand | Output shape |
 |---|---|
-| `preview-status <clientId> <branch>` | `{state, url}` — `state` ∈ ready\|error\|building\|timeout |
-| `prod-status <clientId>` | `{state, url}` |
+| `preview <clientId> --branch <b> [--pr <n>]` | `{state, url}` — `state` ∈ ready\|error\|building\|timeout |
+| `publish <clientId>` | `{state, url}` |
 
-Deploys are triggered by `git push` (host auto-builds); this port only observes.
-A Vercel or Cloudflare Pages adapter implements the same two subcommands against
-that provider's API.
+Deploys are triggered by `git push` (host auto-builds); these providers observe
+state and resolve URLs. A new host implements `preview`/`publish` in a module —
+see [hosting.md](hosting.md). A `--dir` flag is reserved for future
+direct-upload providers (e.g. `wrangler pages deploy`).
 
 ### Image port — `scripts/optimize-image.sh`
 
