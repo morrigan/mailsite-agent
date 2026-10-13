@@ -40,7 +40,9 @@ docker compose -f mailsite-agent/docker/docker-compose.yml run --rm mailsite-age
 docker compose -f mailsite-agent/docker/docker-compose.yml up -d --build
 ```
 
-More, including the Resend listener service, in [docker/README.md](docker/README.md).
+[docs/wizard.md](docs/wizard.md) explains every wizard prompt and where to find
+each value. More, including the Resend listener service, in
+[docker/README.md](docker/README.md).
 
 ### Option 2 - Native
 
@@ -55,7 +57,8 @@ node mailsite-agent/bin/mailsite-setup     # wizard: writes clients.json + .env,
 ```
 
 The wizard asks for your runner, mail provider(s) and credentials, and a first
-client and host. To configure by hand instead, copy `clients.sample.json` to
+client and host; [docs/wizard.md](docs/wizard.md) explains every prompt and where
+to find each value. To configure by hand instead, copy `clients.sample.json` to
 `clients.json` and `.env.example` to `.env` and edit them.
 
 ### Then, for either option
@@ -67,6 +70,7 @@ tail -f logs/run.log                   # watch runs
 
 ## Documentation
 
+- [wizard.md](docs/wizard.md). Every setup-wizard prompt, and where to find each value.
 - [architecture.md](docs/architecture.md). Ports and adapters, the run loop, and the open-source vs private split.
 - [providers.md](docs/providers.md). Mail providers, and how to choose read vs send.
 - [hosting.md](docs/hosting.md). Netlify and Cloudflare Pages.
