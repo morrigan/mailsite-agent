@@ -23,8 +23,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN npm install -g @anthropic-ai/claude-code
 
 # IMAP provider packages installed globally; NODE_PATH makes them require-able
-# from the mounted hub. Gmail/Resend providers need none of this.
-RUN npm install -g imapflow nodemailer mailparser
+# from the mounted hub. Gmail/Resend-send need none of this. resend-cli is only
+# needed for Resend inbound mode (the listener) but is cheap to include.
+RUN npm install -g imapflow nodemailer mailparser resend-cli
 ENV NODE_PATH=/usr/local/lib/node_modules
 
 ENV MAILSITE_HUB=/hub

@@ -19,3 +19,20 @@ services:
       MAILSITE_HUB: /hub
       MAILSITE_INTERVAL: "600"
     restart: unless-stopped
+
+  # Only needed when a client uses mail.read = "resend". Streams Resend inbound
+  # into <hub>/logs/resend-inbox so the scheduler can poll it. Start with:
+  #   docker compose -f mailsite-agent/docker/docker-compose.yml --profile resend up -d
+  resend-listener:
+    profiles: ["resend"]
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    command: ["node", "/hub/mailsite-agent/bin/mailsite-resend-listener"]
+    volumes:
+      - ../../:/hub
+    env_file:
+      - ../../.env
+    environment:
+      MAILSITE_HUB: /hub
+    restart: unless-stopped

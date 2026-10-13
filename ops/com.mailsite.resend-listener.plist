@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  launchd agent for the Resend inbound listener (only needed when a client uses
+  mail.read = "resend"). KeepAlive restarts it if the stream drops.
+
+  Install:
+    1. Replace REPLACE_ME/hub with your absolute hub path (two places).
+    2. Ensure the `resend` CLI is installed (npm i -g resend-cli) and RESEND_API_KEY
+       is in <hub>/.env.
+    3. cp to ~/Library/LaunchAgents/ and: launchctl load ~/Library/LaunchAgents/com.mailsite.resend-listener.plist
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.mailsite.resend-listener</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-lc</string>
+    <string>exec node "$MAILSITE_HUB/mailsite-agent/bin/mailsite-resend-listener"</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>REPLACE_ME/hub</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>MAILSITE_HUB</key>
+    <string>REPLACE_ME/hub</string>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+
+  <key>KeepAlive</key>
+  <true/>
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>REPLACE_ME/hub/logs/resend-listener.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>REPLACE_ME/hub/logs/resend-listener.err.log</string>
+</dict>
+</plist>

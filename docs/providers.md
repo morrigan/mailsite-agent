@@ -17,7 +17,7 @@ because not every service can do both. You configure them independently in
 |----------|:-----------------:|:------------:|-------|
 | **gmail** | ✅ poll | ✅ | Gmail REST API + OAuth2 refresh token. Dependency-free. |
 | **imap**  | ✅ poll | ✅ (via SMTP) | Any IMAP host: **ProtonMail** (via Proton Mail Bridge), Fastmail, iCloud, generic. Needs the opt-in `imapflow`/`nodemailer`/`mailparser` packages. |
-| **resend** | ⚠️ stream (needs inbound mode) | ✅ | Transactional + agent CLI. Inbound exists (`emails receiving listen`/`get`, verified receiving domain) but is a **stream with no state labels**, so reading needs the listener+state-store mode below. Drop-in as `send`. |
+| **resend** | ✅ via inbound mode | ✅ | Transactional + agent CLI. Send is a drop-in. Read works via **Resend inbound mode** (a listener + local state store) — see below. Needs the `resend` CLI + a verified receiving domain. |
 | **claude-connector** | ✅* | ✅* | *Only inside a Claude session via MCP; not a standalone CLI. The Claude adapter handles it. |
 
 ## Why reading is the constraint
@@ -35,16 +35,40 @@ for two reasons, and a read provider must satisfy both:
    crashed run resumes correctly. Gmail has labels; IMAP has keywords. Resend
    inbound has neither.
 
-So Gmail and IMAP are first-class readers today. Resend is a first-class
-**sender** today, and can become a reader via a dedicated **inbound mode**:
+Gmail and IMAP solve both directly. Resend is solved with a dedicated **inbound
+mode** that supplies the missing pollability + state:
 
-### Resend inbound mode (optional, not built yet)
+### Resend inbound mode
 
-A long-running listener (`resend emails receiving listen --json`) writes incoming
-mail into a local store, and a local state store replaces provider-side labels.
-That makes Resend pollable + stateful for this engine — at the cost of running
-one always-on listener process (vs. the stateless cron tick). Ask if you want it;
-until then, a great setup is **read via Gmail/IMAP, send via Resend**.
+Two pieces make Resend a first-class reader:
+
+1. **Listener** — `bin/mailsite-resend-listener` runs
+   `resend emails receiving listen --json` continuously and writes each inbound
+   email to `<hub>/logs/resend-inbox/<id>.json`. That turns the live stream into
+   a pollable local maildir. Run it under a supervisor so it stays up:
+   - *macOS*: `ops/com.mailsite.resend-listener.plist` (KeepAlive).
+   - *Docker*: `docker compose -f mailsite-agent/docker/docker-compose.yml --profile resend up -d`.
+2. **Local state store** — `bin/lib/state-store.js` records each message's state
+   (`InProgress`/…) in `<hub>/logs/mail-state.json`, standing in for the mail
+   labels Gmail/IMAP would hold.
+
+With both running, the Resend provider satisfies the exact same mail-port
+contract as Gmail/IMAP — the PLAYBOOK and the `bin/mailsite-mail` commands are
+identical; only the storage underneath differs. Setup:
+
+```bash
+npm install -g resend-cli          # the CLI the listener drives
+# .env: RESEND_API_KEY=...; clients.json: "mail": { "read": "resend", "send": "resend" }
+# verify a receiving domain in Resend, then start the listener (launchd/Docker above)
+```
+
+The trade-off vs. Gmail/IMAP is operational: you run one always-on listener
+process instead of relying solely on the stateless cron tick. If you'd rather not,
+**read via Gmail/IMAP, send via Resend** needs no listener.
+
+> Field-mapping note: Resend's public docs don't pin the exact inbound JSON field
+> names, so `bin/lib/providers/resend.js` extracts them defensively (trying
+> several aliases). If your real payloads differ, adjust `normalize()` there.
 
 ## Common combinations
 
@@ -54,6 +78,7 @@ until then, a great setup is **read via Gmail/IMAP, send via Resend**.
 | ProtonMail mailbox | `imap` | `imap` | Proton Mail Bridge running; `IMAP_*` + `SMTP_*` |
 | Read Gmail, send via Resend | `gmail` | `resend` | `GMAIL_*`, `RESEND_API_KEY`, `resend.from` |
 | Read Proton, send via Resend | `imap` | `resend` | Bridge + `IMAP_*`, `RESEND_API_KEY`, `resend.from` |
+| All-Resend (needs listener) | `resend` | `resend` | `resend` CLI + receiving domain + listener running; `RESEND_API_KEY`, `resend.from` |
 | Claude-only, zero mail setup | `claude-connector` | `claude-connector` | Authorize the Gmail connector in Claude |
 
 One combination at a time — switch by editing `clients.json` and the matching

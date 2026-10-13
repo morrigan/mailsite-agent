@@ -57,6 +57,7 @@ fi
 check cwebp "cwebp (better WebP)" webp webp optional
 check claude "Claude Code CLI"    "" "" optional
 check goose  "Goose CLI"          "" "" optional
+check resend "Resend CLI (only for Resend inbound mode)" "" "" optional
 
 # --- Node version floor ---
 if command -v node >/dev/null 2>&1; then
