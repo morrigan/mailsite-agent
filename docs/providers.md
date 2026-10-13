@@ -15,19 +15,36 @@ because not every service can do both. You configure them independently in
 
 | Provider | Read (poll inbox) | Send (reply) | Notes |
 |----------|:-----------------:|:------------:|-------|
-| **gmail** | ✅ | ✅ | Gmail REST API + OAuth2 refresh token. Dependency-free. |
-| **imap**  | ✅ | ✅ (via SMTP) | Any IMAP host: **ProtonMail** (via Proton Mail Bridge), Fastmail, iCloud, generic. Needs the opt-in `imapflow`/`nodemailer`/`mailparser` packages. |
-| **resend** | ❌ | ✅ | Transactional API. **No pollable inbox** — inbound is webhook-only. Use as `send` only. Dependency-free. |
+| **gmail** | ✅ poll | ✅ | Gmail REST API + OAuth2 refresh token. Dependency-free. |
+| **imap**  | ✅ poll | ✅ (via SMTP) | Any IMAP host: **ProtonMail** (via Proton Mail Bridge), Fastmail, iCloud, generic. Needs the opt-in `imapflow`/`nodemailer`/`mailparser` packages. |
+| **resend** | ⚠️ stream (needs inbound mode) | ✅ | Transactional + agent CLI. Inbound exists (`emails receiving listen`/`get`, verified receiving domain) but is a **stream with no state labels**, so reading needs the listener+state-store mode below. Drop-in as `send`. |
 | **claude-connector** | ✅* | ✅* | *Only inside a Claude session via MCP; not a standalone CLI. The Claude adapter handles it. |
 
 ## Why reading is the constraint
 
-Sending email is easy and every provider does it. **Receiving** on a schedule is
-the hard part: the loop polls an inbox every few minutes, so the read provider
-must expose a pollable mailbox. Gmail (API) and IMAP do. Resend does not — its
-inbound email is delivered by webhook, which would need a separate always-on
-receiver to store messages somewhere pollable. So Resend is a great *send*
-provider but can't be the *read* provider here.
+Sending email is easy and every provider does it. **Receiving** is the hard part
+for two reasons, and a read provider must satisfy both:
+
+1. **Pollability.** The loop wakes every few minutes and asks "what's new since I
+   last looked?" Gmail (API) and IMAP answer that directly. Resend's inbound is
+   delivered as a **live NDJSON stream** (`resend emails receiving listen`) with
+   no documented "list received since X" — a stream fits a persistent listener,
+   not a stateless cron poll.
+2. **State.** The engine tracks each request's progress
+   (`InProgress`/`AwaitingApproval`/…) as a **label on the mail provider**, so a
+   crashed run resumes correctly. Gmail has labels; IMAP has keywords. Resend
+   inbound has neither.
+
+So Gmail and IMAP are first-class readers today. Resend is a first-class
+**sender** today, and can become a reader via a dedicated **inbound mode**:
+
+### Resend inbound mode (optional, not built yet)
+
+A long-running listener (`resend emails receiving listen --json`) writes incoming
+mail into a local store, and a local state store replaces provider-side labels.
+That makes Resend pollable + stateful for this engine — at the cost of running
+one always-on listener process (vs. the stateless cron tick). Ask if you want it;
+until then, a great setup is **read via Gmail/IMAP, send via Resend**.
 
 ## Common combinations
 
