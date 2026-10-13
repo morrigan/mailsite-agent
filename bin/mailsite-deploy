@@ -1,0 +1,111 @@
+#!/usr/bin/env node
+/**
+ * mailsite-deploy — the DEPLOY port for mailsite-agent.
+ *
+ * Agent-neutral CLI over the Netlify REST API. Prints JSON to stdout.
+ *
+ * Subcommands:
+ *   preview-status <clientId> <branch> [--timeout <sec>] [--interval <sec>]
+ *       Polls the deploy preview for a branch until it is ready/errored, then
+ *       prints {state, url}. state ∈ ready|error|building|enqueued|timeout.
+ *   prod-status <clientId> [--timeout <sec>]
+ *       Polls the latest production deploy until ready/errored; prints {state,url}.
+ *
+ * Deploys themselves are driven by git (push → Netlify auto-build); this CLI
+ * only observes state and resolves URLs. Env (from hub .env): NETLIFY_AUTH_TOKEN
+ */
+'use strict';
+
+const { die, out, loadEnv, loadConfig, parseFlags } = require('./lib/common');
+
+const API = 'https://api.netlify.com/api/v1';
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function client(cfg, id) {
+  const c = (cfg.clients || []).find((x) => x.id === id);
+  if (!c) die(`Unknown clientId: ${id}`);
+  return c;
+}
+
+async function napi(token, pathPart) {
+  const res = await fetch(API + pathPart, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) die(`Netlify API ${pathPart} → ${res.status} ${await res.text()}`);
+  return res.json();
+}
+
+/** Netlify deploy states that are terminal. */
+const TERMINAL = { ready: true, error: true };
+
+async function pollDeploys(token, siteId, match, timeoutSec, intervalSec) {
+  const deadline = Date.now() + timeoutSec * 1000;
+  let last = null;
+  while (Date.now() < deadline) {
+    const deploys = await napi(token, `/sites/${siteId}/deploys?per_page=30`);
+    const hit = deploys.find(match);
+    if (hit) {
+      last = hit;
+      if (TERMINAL[hit.state]) return hit;
+    }
+    await sleep(intervalSec * 1000);
+  }
+  return last; // may be null or a non-terminal deploy → caller reports timeout
+}
+
+async function previewStatus(cfg, positional, flags) {
+  const [clientId, branch] = positional;
+  if (!clientId || !branch) die('usage: preview-status <clientId> <branch>');
+  const token = process.env.NETLIFY_AUTH_TOKEN || die('Missing NETLIFY_AUTH_TOKEN in .env');
+  const c = client(cfg, clientId);
+  const timeout = Number(flags.timeout || 300);
+  const interval = Number(flags.interval || 10);
+
+  // Deploy previews for a branch carry context "deploy-preview" (PR) or the
+  // branch name itself (branch deploys). Match either, newest first.
+  const hit = await pollDeploys(
+    token, c.netlifySiteId,
+    (d) => d.branch === branch && (d.context === 'deploy-preview' || d.context === 'branch-deploy'),
+    timeout, interval
+  );
+
+  if (!hit) return out({ clientId, branch, state: 'timeout', url: null });
+  // Prefer Netlify's own deploy_ssl_url; fall back to the deterministic pattern.
+  const url = hit.deploy_ssl_url || hit.deploy_url ||
+    (hit.review_id ? `https://deploy-preview-${hit.review_id}--${c.netlifySiteName}.netlify.app` : null);
+  out({ clientId, branch, state: hit.state === 'ready' ? 'ready' : hit.state, url, deployId: hit.id });
+}
+
+async function prodStatus(cfg, positional, flags) {
+  const [clientId] = positional;
+  if (!clientId) die('usage: prod-status <clientId>');
+  const token = process.env.NETLIFY_AUTH_TOKEN || die('Missing NETLIFY_AUTH_TOKEN in .env');
+  const c = client(cfg, clientId);
+  const timeout = Number(flags.timeout || 300);
+  const interval = Number(flags.interval || 10);
+
+  const hit = await pollDeploys(
+    token, c.netlifySiteId,
+    (d) => d.context === 'production',
+    timeout, interval
+  );
+  if (!hit) return out({ clientId, state: 'timeout', url: null });
+  out({ clientId, state: hit.state, url: hit.ssl_url || hit.url || null, deployId: hit.id });
+}
+
+async function main() {
+  const [cmd, ...rest] = process.argv.slice(2);
+  if (cmd === undefined || cmd === 'help' || cmd === '--help') {
+    process.stdout.write('mailsite-deploy <preview-status <clientId> <branch> | prod-status <clientId>>\n');
+    return;
+  }
+  const hubRoot = process.env.MAILSITE_HUB || process.cwd();
+  loadEnv(hubRoot);
+  const cfg = loadConfig(hubRoot);
+  const { flags, positional } = parseFlags(rest);
+  switch (cmd) {
+    case 'preview-status': return previewStatus(cfg, positional, flags);
+    case 'prod-status': return prodStatus(cfg, positional, flags);
+    default: die(`Unknown command: ${cmd}`);
+  }
+}
+
+main().catch((e) => die(e && e.stack ? e.stack : e));
