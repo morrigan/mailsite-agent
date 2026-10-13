@@ -69,7 +69,48 @@ function reSubject(subject) {
   return /^re:/i.test(s) ? s : `Re: ${s}`;
 }
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Poll `fn` until it reports done or the timeout elapses.
+ * `fn` returns { done, value }. Returns the value when done, else null.
+ */
+async function pollUntil(fn, { timeoutSec = 300, intervalSec = 10 } = {}) {
+  const deadline = Date.now() + timeoutSec * 1000;
+  while (Date.now() < deadline) {
+    const { done, value } = await fn();
+    if (done) return value;
+    await sleep(intervalSec * 1000);
+  }
+  return null;
+}
+
+/** Look up a client by id (or die). */
+function getClient(cfg, id) {
+  const c = (cfg.clients || []).find((x) => x.id === id);
+  if (!c) die(`Unknown clientId: ${id}`);
+  return c;
+}
+
+/**
+ * Resolve a client's hosting config into a normalized shape, tolerating the
+ * legacy flat `netlifySiteName`/`netlifySiteId` fields and a global default
+ * provider (cfg.hosting.provider).
+ */
+function clientHosting(cfg, client) {
+  const h = client.hosting || {};
+  let provider = h.provider || (cfg.hosting && cfg.hosting.provider);
+  if (!provider && (client.netlifySiteName || client.netlifySiteId)) provider = 'netlify';
+  if (!provider) die(`Client "${client.id}" needs hosting.provider (netlify | cloudflare).`);
+  return {
+    provider,
+    netlify: h.netlify || { siteName: client.netlifySiteName, siteId: client.netlifySiteId },
+    cloudflare: h.cloudflare || {},
+  };
+}
+
 module.exports = {
   STATES, die, out, b64urlDecode, b64urlEncode,
   loadEnv, loadConfig, parseFlags, reSubject,
+  sleep, pollUntil, getClient, clientHosting,
 };
