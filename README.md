@@ -42,7 +42,7 @@ request, editing HTML in-style). That buys three things:
 | Port   | Implementation                | Swap target |
 |--------|-------------------------------|-------------|
 | mail   | `bin/mailsite-mail` — pluggable providers | gmail · imap (Proton/Fastmail/…) · resend · claude-connector |
-| deploy | `bin/mailsite-deploy` (Netlify REST) | Vercel, Cloudflare Pages |
+| deploy | `bin/mailsite-deploy` — pluggable hosts | netlify · cloudflare (Vercel/others droppable) |
 | image  | `scripts/optimize-image.sh` (ImageMagick/cwebp) | anything with the same CLI shape |
 | vcs    | `git` + `gh`                  | — |
 
@@ -60,6 +60,19 @@ both — see [`docs/providers.md`](docs/providers.md) for the full matrix.
 - **send**: `gmail`, `imap`, or `resend` (Resend is send-only — no pollable
   inbox). Defaults to the read provider.
 - `claude-connector`: Claude-only, zero mail setup (uses the Gmail MCP connector).
+
+## Hosting providers
+
+Where each site deploys is chosen **per client** — see [`docs/hosting.md`](docs/hosting.md).
+
+```jsonc
+"hosting": { "provider": "netlify",    "netlify":    { "siteName": "...", "siteId": "..." } }
+"hosting": { "provider": "cloudflare", "cloudflare": { "projectName": "..." } }
+```
+
+Both deploy via git push (the host builds previews for branches/PRs and
+production on merge); the deploy port observes state and resolves the URL. New
+hosts are a drop-in module behind the same two-subcommand contract.
 
 ## Dependencies
 
