@@ -1,0 +1,307 @@
+#!/usr/bin/env node
+/**
+ * mailsite-setup — first-run wizard.
+ *
+ * Interactively collects your runner, mail provider(s) + credentials, and a
+ * first client + hosting, then:
+ *   - writes <hub>/.env (from .env.example, preserving comments & existing keys)
+ *   - writes/updates <hub>/clients.json
+ *   - creates the active-agent symlink (+ .claude wiring for the Claude runner)
+ *   - prints tailored next steps for native or Docker.
+ *
+ * Run from anywhere: `node mailsite-agent/bin/mailsite-setup`
+ * Non-destructive: confirms before overwriting clients.json / .env.
+ */
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const { execFileSync } = require('child_process');
+
+const SELF_DIR = __dirname;                              // <hub>/mailsite-agent/bin
+const AGENT_DIR = path.resolve(SELF_DIR, '..');          // <hub>/mailsite-agent
+const HUB = path.resolve(AGENT_DIR, '..');               // <hub>
+
+// Line reader that works the same for an interactive TTY and for piped stdin
+// (so the wizard is testable). Returns '' once input is exhausted.
+const _queued = [];
+const _waiters = [];
+let _ended = false;
+let _buf = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', (d) => {
+  _buf += d;
+  let i;
+  while ((i = _buf.indexOf('\n')) >= 0) { deliver(_buf.slice(0, i).replace(/\r$/, '')); _buf = _buf.slice(i + 1); }
+});
+process.stdin.on('end', () => { _ended = true; if (_buf.length) { deliver(_buf); _buf = ''; } while (_waiters.length) _waiters.shift()(''); });
+function deliver(line) { if (_waiters.length) _waiters.shift()(line); else _queued.push(line); }
+function nextLine() {
+  if (_queued.length) return Promise.resolve(_queued.shift());
+  if (_ended) return Promise.resolve('');
+  return new Promise((r) => _waiters.push(r));
+}
+const ask = (q) => { process.stdout.write(q); return nextLine(); };
+
+const C = { b: (s) => `\x1b[1m${s}\x1b[0m`, dim: (s) => `\x1b[2m${s}\x1b[0m`, ok: (s) => `\x1b[32m${s}\x1b[0m` };
+const say = (s = '') => process.stdout.write(s + '\n');
+
+async function prompt(label, { def = '', required = false, validate } = {}) {
+  for (;;) {
+    let ans = (await ask(`${label}${def ? C.dim(` [${def}]`) : ''}: `)).trim();
+    if (!ans) ans = def;
+    if (required && !ans) { say('  (required)'); continue; }
+    if (ans && validate) { const err = validate(ans); if (err) { say('  ' + err); continue; } }
+    return ans;
+  }
+}
+async function choice(label, options, defIndex = 0) {
+  options.forEach((o, i) => say(`  ${i + 1}) ${o.label}`));
+  for (;;) {
+    const ans = (await ask(`${label} ${C.dim(`[${defIndex + 1}]`)}: `)).trim() || String(defIndex + 1);
+    const n = parseInt(ans, 10);
+    if (n >= 1 && n <= options.length) return options[n - 1].value;
+    say('  pick a number from the list');
+  }
+}
+async function yesno(label, def = true) {
+  const ans = (await ask(`${label} ${C.dim(def ? '[Y/n]' : '[y/N]')}: `)).trim().toLowerCase();
+  if (!ans) return def;
+  return ans.startsWith('y');
+}
+
+const isEmail = (s) => (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s) ? null : 'enter a valid email');
+const isSlug = (s) => (/^[a-z0-9][a-z0-9-]*$/.test(s) ? null : 'lowercase letters, numbers, hyphens');
+
+/** Parse an .env file into a {KEY: value} map. */
+function parseEnv(file) {
+  const out = {};
+  if (!fs.existsSync(file)) return out;
+  for (const line of fs.readFileSync(file, 'utf8').split('\n')) {
+    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
+    if (m) out[m[1]] = m[2];
+  }
+  return out;
+}
+
+/** Render .env from the example template, substituting collected values. */
+function writeEnv(values) {
+  const tmpl = fs.readFileSync(path.join(AGENT_DIR, '.env.example'), 'utf8');
+  const merged = { ...parseEnv(path.join(HUB, '.env')), ...values }; // keep existing, overlay new
+  const rendered = tmpl.split('\n').map((line) => {
+    const m = line.match(/^([A-Z0-9_]+)=/);
+    if (m && merged[m[1]]) return `${m[1]}=${merged[m[1]]}`;
+    return line;
+  }).join('\n');
+  fs.writeFileSync(path.join(HUB, '.env'), rendered);
+}
+
+function makeSymlink(linkAbs, target) {
+  fs.mkdirSync(path.dirname(linkAbs), { recursive: true });
+  try { fs.unlinkSync(linkAbs); } catch { /* not there */ }
+  fs.symlinkSync(target, linkAbs);
+}
+
+async function main() {
+  say();
+  say(C.b('  mailsite-agent setup'));
+  say(C.dim(`  hub: ${HUB}`));
+  say();
+
+  const env = {};   // collected .env values
+  const cfg = { mail: {}, labelPrefix: 'WebUpdate', clients: [] };
+
+  // --- runner --------------------------------------------------------------
+  const runner = await choice('Which agent will run this?', [
+    { value: 'claude-code', label: 'Claude Code' },
+    { value: 'goose', label: 'Goose' },
+  ]);
+
+  // --- mail read -----------------------------------------------------------
+  say();
+  say(C.b('Mail — inbound (reading requests)'));
+  const read = await choice('Read provider', [
+    { value: 'gmail', label: 'Gmail (API)' },
+    { value: 'imap', label: 'IMAP — ProtonMail (Bridge), Fastmail, generic' },
+    { value: 'resend', label: 'Resend (inbound mode — needs the listener)' },
+    { value: 'claude-connector', label: 'Claude Gmail connector (Claude only, zero setup)' },
+  ]);
+  cfg.mail.read = read;
+
+  // --- mail send -----------------------------------------------------------
+  say();
+  say(C.b('Mail — outbound (sending replies)'));
+  const send = await choice('Send provider', [
+    { value: read, label: `Same as read (${read})` },
+    { value: 'gmail', label: 'Gmail (API)' },
+    { value: 'imap', label: 'IMAP / SMTP' },
+    { value: 'resend', label: 'Resend' },
+  ]);
+  cfg.mail.send = send;
+
+  const uses = (p) => read === p || send === p;
+
+  // --- addresses -----------------------------------------------------------
+  say();
+  cfg.updateAddress = await prompt('Address owners email their changes to', { required: true, validate: isEmail });
+  cfg.developerEmail = await prompt('Your email (gets error alerts)', { def: cfg.updateAddress, validate: isEmail });
+
+  // --- provider credentials ------------------------------------------------
+  say();
+  say(C.b('Credentials') + C.dim('  (leave blank to fill in later in .env)'));
+  if (uses('gmail')) {
+    say(C.dim('  Gmail: OAuth Desktop client, Gmail API on, refresh token (scopes gmail.modify+gmail.send)'));
+    env.GMAIL_CLIENT_ID = await prompt('  GMAIL_CLIENT_ID');
+    env.GMAIL_CLIENT_SECRET = await prompt('  GMAIL_CLIENT_SECRET');
+    env.GMAIL_REFRESH_TOKEN = await prompt('  GMAIL_REFRESH_TOKEN');
+  }
+  if (uses('imap')) {
+    say(C.dim('  IMAP/SMTP: for ProtonMail use the Bridge host/port/credentials'));
+    env.IMAP_HOST = await prompt('  IMAP_HOST', { def: '127.0.0.1' });
+    env.IMAP_PORT = await prompt('  IMAP_PORT', { def: '1143' });
+    env.IMAP_USER = await prompt('  IMAP_USER');
+    env.IMAP_PASSWORD = await prompt('  IMAP_PASSWORD');
+    env.SMTP_HOST = await prompt('  SMTP_HOST', { def: env.IMAP_HOST });
+    env.SMTP_PORT = await prompt('  SMTP_PORT', { def: '1025' });
+    env.SMTP_USER = await prompt('  SMTP_USER', { def: env.IMAP_USER });
+    env.SMTP_PASSWORD = await prompt('  SMTP_PASSWORD', { def: env.IMAP_PASSWORD });
+    env.SMTP_FROM = await prompt('  SMTP_FROM', { def: cfg.updateAddress });
+    cfg.imap = { host: env.IMAP_HOST, port: Number(env.IMAP_PORT), smtpHost: env.SMTP_HOST, smtpPort: Number(env.SMTP_PORT) };
+  }
+  if (uses('resend')) {
+    say(C.dim('  Resend: API key; sender must be a verified domain'));
+    env.RESEND_API_KEY = await prompt('  RESEND_API_KEY');
+    cfg.resend = { from: await prompt('  Verified "From" (e.g. Updates <updates@you.com>)', { def: `Updates <${cfg.updateAddress}>` }) };
+  }
+
+  // --- first client + hosting ---------------------------------------------
+  say();
+  say(C.b('First client (the site you hand off)'));
+  const id = await prompt('  Client id (slug)', { required: true, validate: isSlug });
+  const name = await prompt('  Display name', { def: id });
+  const senders = (await prompt('  Authorized sender email(s), comma-separated', { required: true }))
+    .split(',').map((s) => s.trim()).filter(Boolean);
+  const secretWord = await prompt('  Secret word owners must include (6+ chars)', { required: true, validate: (s) => (s.length >= 6 ? null : 'at least 6 characters') });
+  const productionBranch = await prompt('  Production branch', { def: 'main' });
+
+  say();
+  const provider = await choice('  Hosting provider for this site', [
+    { value: 'netlify', label: 'Netlify' },
+    { value: 'cloudflare', label: 'Cloudflare Pages' },
+  ]);
+  const hosting = { provider };
+  if (provider === 'netlify') {
+    hosting.netlify = {
+      siteName: await prompt('  Netlify site name (the *.netlify.app subdomain)', { required: true }),
+      siteId: await prompt('  Netlify site API ID'),
+    };
+    env.NETLIFY_AUTH_TOKEN = await prompt('  NETLIFY_AUTH_TOKEN', { def: parseEnv(path.join(HUB, '.env')).NETLIFY_AUTH_TOKEN || '' });
+  } else {
+    hosting.cloudflare = { projectName: await prompt('  Cloudflare Pages project name', { required: true }) };
+    const acct = await prompt('  Cloudflare account id (blank = use CLOUDFLARE_ACCOUNT_ID env)');
+    if (acct) hosting.cloudflare.accountId = acct;
+    env.CLOUDFLARE_API_TOKEN = await prompt('  CLOUDFLARE_API_TOKEN', { def: parseEnv(path.join(HUB, '.env')).CLOUDFLARE_API_TOKEN || '' });
+    if (!acct) env.CLOUDFLARE_ACCOUNT_ID = await prompt('  CLOUDFLARE_ACCOUNT_ID');
+  }
+
+  const replyTo = await prompt('  Reply-to address', { def: senders[0], validate: isEmail });
+  const assetDirHint = await prompt('  Where images live in the repo (optional)', { def: 'assets/img' });
+
+  cfg.clients.push({
+    id, name, authorizedSenders: senders, secretWord,
+    repoPath: `sites/${id}`, productionBranch, hosting,
+    replyTo, ...(assetDirHint ? { assetDirHint } : {}),
+  });
+
+  // --- deployment target ---------------------------------------------------
+  say();
+  const target = await choice('How will you run it?', [
+    { value: 'native', label: 'Native (launchd/cron on this machine)' },
+    { value: 'docker', label: 'Docker' },
+  ]);
+
+  // --- write files ---------------------------------------------------------
+  say();
+  // Assemble in a readable key order.
+  const ordered = {
+    mail: cfg.mail,
+    updateAddress: cfg.updateAddress,
+    developerEmail: cfg.developerEmail,
+    labelPrefix: cfg.labelPrefix,
+    ...(cfg.imap ? { imap: cfg.imap } : {}),
+    ...(cfg.resend ? { resend: cfg.resend } : {}),
+    clients: cfg.clients,
+  };
+  const clientsPath = path.join(HUB, 'clients.json');
+  if (fs.existsSync(clientsPath)) {
+    const existing = JSON.parse(fs.readFileSync(clientsPath, 'utf8'));
+    if (await yesno(`clients.json exists — add "${id}" to it (No = overwrite)?`, true)) {
+      existing.clients = (existing.clients || []).filter((c) => c.id !== id).concat(cfg.clients[0]);
+      fs.writeFileSync(clientsPath, JSON.stringify(existing, null, 2) + '\n');
+    } else {
+      fs.writeFileSync(clientsPath, JSON.stringify(ordered, null, 2) + '\n');
+    }
+  } else {
+    fs.writeFileSync(clientsPath, JSON.stringify(ordered, null, 2) + '\n');
+  }
+  say(C.ok('✓') + ' wrote clients.json');
+
+  const envPath = path.join(HUB, '.env');
+  const envExists = fs.existsSync(envPath);
+  if (!envExists || await yesno('.env exists — update it with the values you entered?', true)) {
+    writeEnv(env);
+    say(C.ok('✓') + ' wrote .env');
+  }
+
+  // --- runner wiring -------------------------------------------------------
+  makeSymlink(path.join(HUB, 'active-agent'), `mailsite-agent/adapters/${runner}`);
+  if (runner === 'claude-code') {
+    makeSymlink(path.join(HUB, '.claude', 'skills', 'process-inbox.md'), '../../mailsite-agent/adapters/claude-code/SKILL.md');
+    makeSymlink(path.join(HUB, '.claude', 'settings.json'), '../mailsite-agent/adapters/claude-code/settings.json');
+  }
+  fs.mkdirSync(path.join(HUB, 'logs'), { recursive: true });
+  say(C.ok('✓') + ` wired active-agent → ${runner}`);
+
+  // --- optional native installs -------------------------------------------
+  if (target === 'native' && read === 'imap') {
+    if (await yesno('Install IMAP packages (imapflow nodemailer mailparser) now?', true)) {
+      try { execFileSync('npm', ['install', '--prefix', AGENT_DIR, 'imapflow', 'nodemailer', 'mailparser'], { stdio: 'inherit' }); }
+      catch { say('  (npm install failed — run it yourself later)'); }
+    }
+  }
+  if (target === 'native' && await yesno('Install the launchd scheduler now (runs every 10 min)?', false)) {
+    try {
+      const src = fs.readFileSync(path.join(AGENT_DIR, 'adapters', 'claude-code', 'com.mailsite.agent.plist'), 'utf8');
+      const dest = path.join(os.homedir(), 'Library', 'LaunchAgents', 'com.mailsite.agent.plist');
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      fs.writeFileSync(dest, src.replace(/REPLACE_ME\/hub/g, HUB));
+      execFileSync('launchctl', ['load', dest], { stdio: 'inherit' });
+      say(C.ok('✓') + ' launchd scheduler loaded');
+    } catch (e) { say('  (could not load launchd agent: ' + e.message + ')'); }
+  }
+
+  // --- summary -------------------------------------------------------------
+  say();
+  say(C.b('Done. Next steps:'));
+  say(`  • Clone the client site:  ${C.dim(`git clone <repo> sites/${id}`)}`);
+  if (read === 'claude-connector') say('  • Authorize the Gmail connector in Claude.');
+  if (read === 'resend') {
+    say('  • Install the Resend CLI:  ' + C.dim('npm i -g resend-cli') + '  and verify a receiving domain.');
+    say('  • Start the inbound listener (keeps Resend pollable):');
+    if (target === 'docker') say('      ' + C.dim('docker compose -f mailsite-agent/docker/docker-compose.yml --profile resend up -d'));
+    else say('      ' + C.dim('see mailsite-agent/ops/com.mailsite.resend-listener.plist'));
+  }
+  if (target === 'docker') {
+    say('  • Add ANTHROPIC_API_KEY + GH_TOKEN to .env, then:');
+    say('      ' + C.dim('docker compose -f mailsite-agent/docker/docker-compose.yml up -d --build'));
+  } else {
+    say('  • Try one run:  ' + C.dim('./active-agent/run-cron.sh && tail -f logs/run.log'));
+  }
+  say('  • Verify prerequisites anytime:  ' + C.dim('bash mailsite-agent/scripts/doctor.sh'));
+  say();
+}
+
+main()
+  .then(() => { process.stdin.unref(); })
+  .catch((e) => { process.stderr.write((e.stack || String(e)) + '\n'); process.exit(1); });

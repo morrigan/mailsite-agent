@@ -8,10 +8,13 @@
     "node": ">=18"
   },
   "bin": {
+    "mailsite-setup": "bin/mailsite-setup",
     "mailsite-mail": "bin/mailsite-mail",
-    "mailsite-deploy": "bin/mailsite-deploy"
+    "mailsite-deploy": "bin/mailsite-deploy",
+    "mailsite-resend-listener": "bin/mailsite-resend-listener"
   },
   "scripts": {
+    "setup": "node bin/mailsite-setup",
     "doctor": "bash scripts/doctor.sh",
     "mail": "node bin/mailsite-mail",
     "deploy": "node bin/mailsite-deploy"

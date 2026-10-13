@@ -96,21 +96,20 @@ token, your provider credentials, and one agent (`claude` or `goose`). See
 ## Quick start
 
 ```bash
-# In your hub directory (holds clients.json + this mailsite-agent/ dir):
-bash mailsite-agent/scripts/doctor.sh                # verify prerequisites
-cp mailsite-agent/clients.sample.json clients.json   # then edit it
-cp mailsite-agent/.env.example .env                  # then fill in secrets
+# In your hub directory (holds this mailsite-agent/ dir):
+bash mailsite-agent/scripts/doctor.sh          # verify prerequisites
+node mailsite-agent/bin/mailsite-setup         # interactive wizard
 
-# Pick your agent (see each adapter's install.md):
-#   Claude Code → mailsite-agent/adapters/claude-code/install.md
-#   Goose       → point `goose run --recipe …/goose/recipe.yaml` at the hub
-
-# One manual tick:
-./active-agent/run-cron.sh && tail -f logs/run.log
+# The wizard asks for your runner, mail provider(s) + credentials, and first
+# client + host, then writes clients.json and .env, wires the active-agent
+# symlink, and prints tailored next steps. Then:
+git clone <repo> sites/<client-id>             # the site to manage
+./active-agent/run-cron.sh && tail -f logs/run.log   # one manual tick
 ```
 
-See [`docs/onboarding.md`](docs/onboarding.md) to add a client site, and each
-adapter's `install.md` to schedule unattended runs.
+Prefer to configure by hand? Copy `clients.sample.json` → `clients.json` and
+`.env.example` → `.env` and edit them. See [`docs/onboarding.md`](docs/onboarding.md)
+to add more client sites and each adapter's `install.md` to schedule runs.
 
 ## Security model
 
