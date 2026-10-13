@@ -39,6 +39,8 @@ function loadConfig(hubRoot) {
   if (!fs.existsSync(f)) die(`clients.json not found at ${f}`);
   const cfg = JSON.parse(fs.readFileSync(f, 'utf8'));
   cfg.labelPrefix = cfg.labelPrefix || 'WebUpdate';
+  // Record where the hub is so providers can reach logs/ (local state, inbox).
+  Object.defineProperty(cfg, '_hubRoot', { value: hubRoot, enumerable: false });
 
   // Normalize mail config. Accept the modern `mail:{read,send}` object, or a
   // legacy flat `mailAdapter` string, and fill defaults.

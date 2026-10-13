@@ -1,0 +1,49 @@
+#!/usr/bin/env node
+/**
+ * mailsite-resend-listener — the always-on half of "Resend inbound mode".
+ *
+ * Runs `resend emails receiving listen --json` and writes each inbound email as
+ * <hub>/logs/resend-inbox/<id>.json, which the resend read provider polls. Keep
+ * it running under a supervisor (launchd KeepAlive / Docker restart); it exits
+ * non-zero if the stream ends so the supervisor restarts it.
+ *
+ * Requires: the `resend` CLI (npm i -g resend-cli) and RESEND_API_KEY in .env.
+ */
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+const { spawn } = require('child_process');
+const { loadEnv, die } = require('./lib/common');
+
+const hubRoot = process.env.MAILSITE_HUB || process.cwd();
+loadEnv(hubRoot);
+if (!process.env.RESEND_API_KEY) die('Missing RESEND_API_KEY in .env');
+
+const inbox = path.join(hubRoot, 'logs', 'resend-inbox');
+fs.mkdirSync(inbox, { recursive: true });
+const log = (m) => process.stdout.write(`${new Date().toISOString()} ${m}\n`);
+
+log('resend inbound listener: starting `resend emails receiving listen --json`');
+const child = spawn('resend', ['emails', 'receiving', 'listen', '--json'], { env: process.env });
+
+let buf = '';
+child.stdout.on('data', (d) => {
+  buf += d.toString();
+  let nl;
+  while ((nl = buf.indexOf('\n')) >= 0) {
+    const line = buf.slice(0, nl).trim();
+    buf = buf.slice(nl + 1);
+    if (!line) continue;
+    let obj;
+    try { obj = JSON.parse(line); } catch { log('skip non-JSON line'); continue; }
+    const id = obj.id || obj.email_id || obj.message_id || obj.messageId;
+    if (!id) { log('skip inbound without an id field'); continue; }
+    const safe = String(id).replace(/[^\w.\-]/g, '_');
+    fs.writeFileSync(path.join(inbox, `${safe}.json`), JSON.stringify(obj, null, 2));
+    log(`stored inbound ${id}`);
+  }
+});
+child.stderr.on('data', (d) => process.stderr.write(d));
+child.on('error', (e) => die(`failed to spawn resend CLI (install: npm i -g resend-cli): ${e.message}`));
+child.on('exit', (code) => { log(`resend listen exited (${code}); supervisor should restart`); process.exit(code || 1); });
