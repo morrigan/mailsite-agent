@@ -1,5 +1,5 @@
 'use strict';
-// IMAP/SMTP provider — covers any IMAP mailbox: ProtonMail (via Proton Mail
+// IMAP/SMTP provider, covers any IMAP mailbox: ProtonMail (via Proton Mail
 // Bridge), Fastmail, iCloud, generic hosts. Reads over IMAP, sends over SMTP.
 //
 // State "labels" are stored as IMAP custom keywords ("<prefix>_<State>") since

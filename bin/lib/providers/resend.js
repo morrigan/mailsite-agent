@@ -1,5 +1,5 @@
 'use strict';
-// Resend provider — full read + send.
+// Resend provider, full read + send.
 //
 // Sending: Resend's transactional API (dependency-free). Drop-in as `mail.send`.
 //   Env: RESEND_API_KEY   Config: cfg.resend.from (verified sender)
@@ -13,7 +13,7 @@
 // Attachment bytes are fetched on demand via `resend emails receiving get`.
 //
 // NOTE: the exact inbound JSON field names aren't pinned in Resend's public
-// docs, so field extraction below is deliberately defensive — adjust the
+// docs, so field extraction below is deliberately defensive, adjust the
 // `normalize()` aliases if your real payloads differ.
 
 const fs = require('fs');
@@ -105,7 +105,7 @@ module.exports = {
   async downloadAttachments(cfg, msgId, destDir) {
     let atts = normalize(findRaw(cfg, msgId)).attachments;
     if (atts.length && !atts.some((a) => a.content)) {
-      // No inline bytes in the maildir — pull full content via the CLI.
+      // No inline bytes in the maildir, pull full content via the CLI.
       atts = normalize(cliGet(msgId)).attachments;
     }
     fs.mkdirSync(destDir, { recursive: true });

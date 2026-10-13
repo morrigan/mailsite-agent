@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# run-cron.sh (Goose adapter) — one scheduled tick.
+# run-cron.sh (Goose adapter), one scheduled tick.
 # Mirror of the Claude adapter's wrapper, but invokes `goose run`.
 # Holds a lock so overlapping ticks can't double-run.
 set -euo pipefail

@@ -1,5 +1,5 @@
 'use strict';
-// Gmail provider — implements BOTH the read and send halves of the mail port
+// Gmail provider, implements BOTH the read and send halves of the mail port
 // using the Gmail REST API with an OAuth2 refresh token. No npm dependencies.
 //
 // Read half:  fetchNew, get, downloadAttachments, label, threadReplies

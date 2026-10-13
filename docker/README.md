@@ -6,12 +6,12 @@ scheduler loop; your hub is mounted at `/hub`.
 
 ## When Docker makes sense
 
-- You want one command and no native installs, or you're deploying to a
-  server/VPS rather than a Mac.
-- Downside: the LLM agent and git/GitHub still need credentials passed in
-  (below), and `mail.read: claude-connector` does **not** work in a container
-  (MCP connectors are only available inside an interactive Claude session) —
-  use `gmail` or `imap` instead.
+- You want one command and no native installs, or you're deploying to a server
+  rather than a Mac.
+- The catch: the LLM agent and git still need credentials passed in (below), and
+  `mail.read: claude-connector` does not work in a container, since MCP
+  connectors only exist inside an interactive Claude session. Use `gmail` or
+  `imap` instead.
 
 ## Setup
 
@@ -41,4 +41,4 @@ Change the poll interval with `MAILSITE_INTERVAL` (seconds) in the compose file.
 
 You don't need Docker. `bash mailsite-agent/scripts/doctor.sh --install` installs
 the native prerequisites, then schedule `active-agent/run-cron.sh` with launchd
-(macOS — see `adapters/claude-code/com.mailsite.agent.plist`) or cron (Linux).
+on macOS (see `adapters/claude-code/com.mailsite.agent.plist`) or cron on Linux.

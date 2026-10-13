@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * mailsite-deploy — the DEPLOY port for mailsite-agent.
+ * mailsite-deploy, the DEPLOY port for mailsite-agent.
  *
  * Agent-neutral CLI over pluggable hosting providers (bin/lib/deploy/*). The
  * host is chosen per client in clients.json:

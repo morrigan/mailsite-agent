@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * mailsite-setup — first-run wizard.
+ * mailsite-setup, first-run wizard.
  *
  * Interactively collects your runner, mail provider(s) + credentials, and a
  * first client + hosting, then:
@@ -74,7 +74,7 @@ async function yesno(label, def = true) {
 const isEmail = (s) => (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s) ? null : 'enter a valid email');
 const isSlug = (s) => (/^[a-z0-9][a-z0-9-]*$/.test(s) ? null : 'lowercase letters, numbers, hyphens');
 
-const HELP = `mailsite-setup — first-run wizard for mailsite-agent
+const HELP = `mailsite-setup, first-run wizard for mailsite-agent
 
 Usage:
   node mailsite-agent/bin/mailsite-setup       run interactively
@@ -144,18 +144,18 @@ async function main() {
 
   // --- mail read -----------------------------------------------------------
   say();
-  say(C.b('Mail — inbound (reading requests)'));
+  say(C.b('Mail: inbound (reading requests)'));
   const read = await choice('Read provider', [
     { value: 'gmail', label: 'Gmail (API)' },
-    { value: 'imap', label: 'IMAP — ProtonMail (Bridge), Fastmail, generic' },
-    { value: 'resend', label: 'Resend (inbound mode — needs the listener)' },
+    { value: 'imap', label: 'IMAP, ProtonMail (Bridge), Fastmail, generic' },
+    { value: 'resend', label: 'Resend (inbound mode, needs the listener)' },
     { value: 'claude-connector', label: 'Claude Gmail connector (Claude only, zero setup)' },
   ]);
   cfg.mail.read = read;
 
   // --- mail send -----------------------------------------------------------
   say();
-  say(C.b('Mail — outbound (sending replies)'));
+  say(C.b('Mail: outbound (sending replies)'));
   const send = await choice('Send provider', [
     { value: read, label: `Same as read (${read})` },
     { value: 'gmail', label: 'Gmail (API)' },
@@ -260,7 +260,7 @@ async function main() {
   const clientsPath = path.join(HUB, 'clients.json');
   if (fs.existsSync(clientsPath)) {
     const existing = JSON.parse(fs.readFileSync(clientsPath, 'utf8'));
-    if (await yesno(`clients.json exists — add "${id}" to it (No = overwrite)?`, true)) {
+    if (await yesno(`clients.json exists, add "${id}" to it (No = overwrite)?`, true)) {
       existing.clients = (existing.clients || []).filter((c) => c.id !== id).concat(cfg.clients[0]);
       fs.writeFileSync(clientsPath, JSON.stringify(existing, null, 2) + '\n');
     } else {
@@ -273,7 +273,7 @@ async function main() {
 
   const envPath = path.join(HUB, '.env');
   const envExists = fs.existsSync(envPath);
-  if (!envExists || await yesno('.env exists — update it with the values you entered?', true)) {
+  if (!envExists || await yesno('.env exists, update it with the values you entered?', true)) {
     writeEnv(env);
     say(C.ok('✓') + ' wrote .env');
   }
@@ -291,7 +291,7 @@ async function main() {
   if (target === 'native' && read === 'imap') {
     if (await yesno('Install IMAP packages (imapflow nodemailer mailparser) now?', true)) {
       try { execFileSync('npm', ['install', '--prefix', AGENT_DIR, 'imapflow', 'nodemailer', 'mailparser'], { stdio: 'inherit' }); }
-      catch { say('  (npm install failed — run it yourself later)'); }
+      catch { say('  (npm install failed, run it yourself later)'); }
     }
   }
   if (target === 'native' && await yesno('Install the launchd scheduler now (runs every 10 min)?', false)) {

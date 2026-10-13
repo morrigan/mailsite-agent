@@ -1,8 +1,8 @@
 # mailsite-agent runtime image.
 #
-# Bundles everything deterministic — Node, the capability CLIs' system deps
+# Bundles everything deterministic, Node, the capability CLIs' system deps
 # (ImageMagick + WebP), git, GitHub CLI, the IMAP provider's node packages, and
-# the Claude Code CLI — so a first-time user doesn't install anything natively.
+# the Claude Code CLI, so a first-time user doesn't install anything natively.
 #
 # The hub (clients.json, .env, sites/, mailsite-agent/) is mounted at /hub; the
 # container just runs the scheduler loop. Build context = the mailsite-agent dir.

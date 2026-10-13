@@ -3,3 +3,7 @@ node_modules/
 .DS_Store
 # Private per-user data lives in the parent hub, never in this repo:
 # clients.json, .env, sites/, logs/ — see README.
+
+# session skill tooling (not part of the project)
+.agents/
+skills-lock.json

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# doctor.sh — check (and optionally install) prerequisites for mailsite-agent.
+# doctor.sh, check (and optionally install) prerequisites for mailsite-agent.
 #
 #   bash scripts/doctor.sh          # check only
 #   bash scripts/doctor.sh --install  # try to install missing native deps
@@ -38,7 +38,7 @@ check() { # check <cmd> <label> <brew> <apt> <required|optional>
   if [ "$level" = optional ]; then yellow "$label missing (optional)"; else red "$label missing (required)"; fi
 }
 
-echo "mailsite-agent doctor — checking prerequisites${MODE_LABEL}"
+echo "mailsite-agent doctor, checking prerequisites${MODE_LABEL}"
 echo "package manager: ${PKG:-none detected}"
 echo
 
@@ -68,10 +68,10 @@ fi
 # --- IMAP optional packages (only if you plan to use the imap provider) ---
 SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 if node -e 'require.resolve("imapflow")' >/dev/null 2>&1; then
-  green "IMAP packages present (imapflow/…)"
+  green "IMAP packages present (imapflow, nodemailer, mailparser)"
 else
-  yellow "IMAP packages not installed — only needed for mail.read/send = imap."
-  [ "$INSTALL" = "1" ] && { echo "  installing imapflow nodemailer mailparser…"; npm install --prefix "$SELF" imapflow nodemailer mailparser; }
+  yellow "IMAP packages not installed, only needed for mail.read/send = imap."
+  [ "$INSTALL" = "1" ] && { echo "  installing imapflow nodemailer mailparser"; npm install --prefix "$SELF" imapflow nodemailer mailparser; }
 fi
 
 echo

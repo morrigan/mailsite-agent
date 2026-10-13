@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * mailsite-mail — the MAIL port for mailsite-agent.
+ * mailsite-mail, the MAIL port for mailsite-agent.
  *
  * Agent-neutral CLI: every subcommand prints JSON to stdout and exits non-zero
  * on error. The agent (Claude, Goose, …) never touches a mail API directly.

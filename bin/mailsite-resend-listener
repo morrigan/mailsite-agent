@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * mailsite-resend-listener — the always-on half of "Resend inbound mode".
+ * mailsite-resend-listener, the always-on half of "Resend inbound mode".
  *
  * Runs `resend emails receiving listen --json` and writes each inbound email as
  * <hub>/logs/resend-inbox/<id>.json, which the resend read provider polls. Keep
@@ -18,7 +18,7 @@ const { loadEnv, die } = require('./lib/common');
 
 if (process.argv.includes('-h') || process.argv.includes('--help')) {
   process.stdout.write(
-    'mailsite-resend-listener — Resend inbound mode\n\n' +
+    'mailsite-resend-listener, Resend inbound mode\n\n' +
     'Runs `resend emails receiving listen --json` and writes each inbound email to\n' +
     '<hub>/logs/resend-inbox/<id>.json for the resend read provider to poll. Keep it\n' +
     'running under a supervisor (launchd KeepAlive / Docker restart).\n\n' +

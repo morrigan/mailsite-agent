@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# optimize-image.sh — the IMAGE port for mailsite-agent.
+# optimize-image.sh, the IMAGE port for mailsite-agent.
 #
 # Usage: optimize-image.sh <input> <output> [maxEdge] [quality]
 #   maxEdge   longest side in px, default 1600 (only shrinks, never enlarges)

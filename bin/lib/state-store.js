@@ -1,5 +1,5 @@
 'use strict';
-// Local state store — a stand-in for provider-side mail labels, used by read
+// Local state store, a stand-in for provider-side mail labels, used by read
 // providers that have no server labels (currently: resend inbound mode).
 //
 // Persists to <hub>/logs/mail-state.json as { "<msgId>": { state, updated } }.

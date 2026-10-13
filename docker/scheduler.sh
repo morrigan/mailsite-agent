@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# scheduler.sh — the container entrypoint. Replaces launchd/cron inside Docker:
+# scheduler.sh, the container entrypoint. Replaces launchd/cron inside Docker:
 # runs the active agent adapter's run-cron.sh every MAILSITE_INTERVAL seconds.
 set -u
 
@@ -17,7 +17,7 @@ git config --global --add safe.directory '*' >/dev/null 2>&1 || true
 [ -n "${GIT_AUTHOR_EMAIL:-}" ] && git config --global user.email "$GIT_AUTHOR_EMAIL" || true
 
 if [ ! -x ./active-agent/run-cron.sh ]; then
-  echo "No ./active-agent/run-cron.sh — create the symlink (see an adapter install.md)."
+  echo "No ./active-agent/run-cron.sh, create the symlink (see an adapter install.md)."
   exit 1
 fi
 

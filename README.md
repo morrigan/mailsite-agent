@@ -2,79 +2,79 @@
 
 **Let non-technical site owners update their static website by sending an email.**
 
-You build someone a static site (hand-coded, or with a coding agent) and host it
-on Netlify or Cloudflare Pages. Later the owner wants to change some text or add a
-photo. Instead of them learning git — or pinging you — they **email the change**.
-An agent verifies them, authors the edit, builds a **preview**, and emails it
-back. The owner replies **"approve"** and it goes live.
+You build someone a static site (by hand, or with a coding agent) and host it on
+Netlify or Cloudflare Pages. Later the owner wants to change some text or add a
+photo. Instead of learning git or pinging you, they email the change. An agent
+checks who sent it, makes the edit, builds a preview, and emails back the link.
+The owner replies "approve" and it goes live.
 
 ```
 Owner email ─▶ agent verifies sender ─▶ edits site ─▶ host preview
             ─▶ emails preview link ─▶ owner replies "approve" ─▶ published
 ```
 
-It's **agent-agnostic** (runs under Claude Code or Goose), works with multiple
-**mail** providers (Gmail, IMAP/ProtonMail, Resend) and **hosts** (Netlify,
-Cloudflare Pages), and never publishes without explicit approval. How it all fits
-together is in [docs/architecture.md](docs/architecture.md).
+It runs under Claude Code or Goose. It reads and sends mail through Gmail, IMAP
+(ProtonMail via Bridge, Fastmail, any IMAP host), or Resend, and deploys to
+Netlify or Cloudflare Pages. Nothing goes live without an approval reply.
+[docs/architecture.md](docs/architecture.md) explains how it fits together.
 
 ## Setup
 
-All commands run from your **hub** directory — the folder that contains this
-`mailsite-agent/`. Both options need the same credentials: a host token
-(Netlify/Cloudflare) and your mail provider's credentials; the Docker option also
-needs `ANTHROPIC_API_KEY` + `GH_TOKEN` in `.env`. Pick one:
+Run everything from your hub directory, the folder that contains this
+`mailsite-agent/`. Both options need a Netlify or Cloudflare token and your mail
+provider's credentials; Docker also needs `ANTHROPIC_API_KEY` and `GH_TOKEN` in
+`.env`. Pick one.
 
-### Option A — Docker (no local toolchain)
+### Option 1 - Docker
 
-The image bundles everything (Node, ImageMagick, WebP, `git`, `gh`, the IMAP
-packages, the Claude CLI), so you install nothing on your machine.
+The image bundles Node, ImageMagick, WebP, `git`, `gh`, the IMAP packages, and
+the Claude CLI, so you install nothing on your machine.
 
 ```bash
-# Configure (writes clients.json + .env). Use the wizard in a container:
+# Configure with the wizard in a container (writes clients.json + .env),
+# or copy clients.sample.json and .env.example by hand and edit them:
 docker compose -f mailsite-agent/docker/docker-compose.yml run --rm mailsite-agent \
   node /hub/mailsite-agent/bin/mailsite-setup
-#   …or just copy clients.sample.json → clients.json and .env.example → .env and edit.
 
-# Run it (scheduler loops automatically):
+# Run it. The scheduler loops on its own:
 docker compose -f mailsite-agent/docker/docker-compose.yml up -d --build
 ```
 
-Details and the Resend-listener service: [docker/README.md](docker/README.md).
+More, including the Resend listener service, in [docker/README.md](docker/README.md).
 
-### Option B — Native
+### Option 2 - Native
 
-Requires: Node 18+, `git`, GitHub CLI `gh`, ImageMagick (`cwebp` optional), and
-one runner — Claude Code (`claude`) or Goose (`goose`). The core is
-dependency-free; only the IMAP provider pulls extra packages.
+Requires Node 18+, `git`, GitHub CLI `gh`, ImageMagick (`cwebp` optional), and
+one runner, Claude Code (`claude`) or Goose (`goose`). The core has no
+dependencies; only the IMAP provider pulls extra packages.
 
 ```bash
-bash mailsite-agent/scripts/doctor.sh      # check (--install to auto-install) prerequisites
-node mailsite-agent/bin/mailsite-setup     # interactive wizard → writes clients.json + .env, wires active-agent
-./active-agent/run-cron.sh                 # one manual tick (schedule it via your adapter's install.md)
+bash mailsite-agent/scripts/doctor.sh      # check prerequisites (--install to auto-install)
+node mailsite-agent/bin/mailsite-setup     # wizard: writes clients.json + .env, wires active-agent
+./active-agent/run-cron.sh                 # one manual run (schedule it via your adapter's install.md)
 ```
 
-The wizard asks for your runner, mail provider(s) + credentials, and first client
-+ host. Prefer to configure by hand? Copy `clients.sample.json` → `clients.json`
-and `.env.example` → `.env` and edit them.
+The wizard asks for your runner, mail provider(s) and credentials, and a first
+client and host. To configure by hand instead, copy `clients.sample.json` to
+`clients.json` and `.env.example` to `.env` and edit them.
 
 ### Then, for either option
 
 ```bash
-git clone <repo> sites/<client-id>     # the site to manage (per docs/onboarding.md)
+git clone <repo> sites/<client-id>     # the website to manage (see docs/onboarding.md)
 tail -f logs/run.log                   # watch runs
 ```
 
 ## Documentation
 
-- [architecture.md](docs/architecture.md) — how it works: ports & adapters, the run loop, the open-source/private split
-- [providers.md](docs/providers.md) — mail providers (Gmail, IMAP/ProtonMail, Resend) and how to choose read vs send
-- [hosting.md](docs/hosting.md) — hosting providers (Netlify, Cloudflare Pages)
-- [onboarding.md](docs/onboarding.md) — add a new client site
-- [security.md](docs/security.md) — the trust model and guardrails
-- [ports-and-adapters.md](docs/ports-and-adapters.md) — extend it: add a mail/deploy provider or a new agent
-- [PLAYBOOK.md](PLAYBOOK.md) — the authoritative runbook the agent executes
+- [architecture.md](docs/architecture.md). Ports and adapters, the run loop, and the open-source vs private split.
+- [providers.md](docs/providers.md). Mail providers, and how to choose read vs send.
+- [hosting.md](docs/hosting.md). Netlify and Cloudflare Pages.
+- [onboarding.md](docs/onboarding.md). Add a new client site.
+- [security.md](docs/security.md). The trust model and guardrails.
+- [ports-and-adapters.md](docs/ports-and-adapters.md). Add a mail or deploy provider, or a new agent.
+- [PLAYBOOK.md](PLAYBOOK.md). The runbook the agent executes each run.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE).

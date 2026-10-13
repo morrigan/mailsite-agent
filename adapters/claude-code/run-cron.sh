@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# run-cron.sh (Claude Code adapter) — one scheduled tick.
+# run-cron.sh (Claude Code adapter), one scheduled tick.
 # Invoked by launchd/cron. Holds a lock so overlapping ticks can't double-run.
 #
 # Resolves the hub root as the great-grandparent of this script
