@@ -1,0 +1,34 @@
+{
+  "mail": {
+    "read": "gmail",
+    "send": "gmail"
+  },
+  "updateAddress": "updates@yourdomain.com",
+  "developerEmail": "you@yourdomain.com",
+  "labelPrefix": "WebUpdate",
+
+  "imap": {
+    "host": "127.0.0.1",
+    "port": 1143,
+    "smtpHost": "127.0.0.1",
+    "smtpPort": 1025
+  },
+  "resend": {
+    "from": "Updates <updates@yourdomain.com>"
+  },
+
+  "clients": [
+    {
+      "id": "acme-cafe",
+      "name": "Acme Cafe",
+      "authorizedSenders": ["owner@acmecafe.com"],
+      "secretWord": "sunflower-pancake",
+      "repoPath": "sites/acme-cafe",
+      "productionBranch": "main",
+      "netlifySiteName": "acme-cafe",
+      "netlifySiteId": "00000000-0000-0000-0000-000000000000",
+      "replyTo": "owner@acmecafe.com",
+      "assetDirHint": "assets/img"
+    }
+  ]
+}
