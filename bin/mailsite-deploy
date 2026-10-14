@@ -18,6 +18,10 @@
  *   publish <clientId> [--dir <path>] [--timeout <s>] [--interval <s>]
  *       Wait for the latest production deploy to be ready; print {state, url}.
  *
+ * How long it waits: --timeout/--interval, else MAILSITE_DEPLOY_TIMEOUT /
+ * MAILSITE_DEPLOY_INTERVAL from .env, else 300s / 10s. Raise the timeout for a
+ * slow build (e.g. a large Next.js app) that needs more than five minutes.
+ *
  * `--dir` is accepted for forward-compat with direct-upload providers; the
  * git-triggered Netlify/Cloudflare providers ignore it.
  */
@@ -35,7 +39,8 @@ async function main() {
   if (cmd === undefined || cmd === 'help' || cmd === '--help') {
     process.stdout.write(
       'mailsite-deploy <preview <clientId> --branch <b> [--pr <n>] | publish <clientId>>\n' +
-      '  common flags: --dir <path> --timeout <sec> --interval <sec>\n');
+      '  common flags: --dir <path> --timeout <sec> --interval <sec>\n' +
+      '  env: MAILSITE_DEPLOY_TIMEOUT (sec, default 300), MAILSITE_DEPLOY_INTERVAL (sec, default 10)\n');
     return;
   }
 
@@ -50,9 +55,13 @@ async function main() {
   const host = clientHosting(cfg, client);
   const provider = loadProvider(host.provider);
 
+  // Timeout/interval precedence: explicit --flag, then env (so an operator can
+  // raise it in .env without touching the PLAYBOOK), then the default. The
+  // default is 5 minutes; slow builds (a large Next.js app) may need more.
+  const num = (v, d) => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : d; };
   const poll = (fn) => pollUntil(fn, {
-    timeoutSec: Number(flags.timeout || 300),
-    intervalSec: Number(flags.interval || 10),
+    timeoutSec: num(flags.timeout, num(process.env.MAILSITE_DEPLOY_TIMEOUT, 300)),
+    intervalSec: num(flags.interval, num(process.env.MAILSITE_DEPLOY_INTERVAL, 10)),
   });
   const opts = { branch: flags.branch, pr: flags.pr, dir: flags.dir, since: flags.since };
 

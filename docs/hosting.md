@@ -78,6 +78,12 @@ default, whenever `workers.dev` is on).
   is ready.
 - `publish <clientId>` blocks until the latest production deploy is ready.
 
+Both poll until the build is ready or the timeout elapses (then `state` is
+`timeout`). The wait is `--timeout`/`--interval`, else `MAILSITE_DEPLOY_TIMEOUT`/
+`MAILSITE_DEPLOY_INTERVAL` from `.env`, else 300s/10s. A large Next.js build can
+take longer than five minutes, so raise `MAILSITE_DEPLOY_TIMEOUT` (e.g. `900`) if
+you see a preview `timeout`.
+
 The git-triggered providers accept and ignore a `--dir <path>` flag. It's there
 so a future direct-upload provider (`wrangler pages deploy`, `netlify deploy`,
 S3, FTP) can implement the same two subcommands by uploading a built directory
