@@ -25,7 +25,9 @@ function loadEnv(hubRoot) {
   const f = path.join(hubRoot, '.env');
   if (!fs.existsSync(f)) return;
   for (const line of fs.readFileSync(f, 'utf8').split('\n')) {
-    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
+    // Lazy (.*?) + \s*$ trims trailing whitespace a greedy group would keep,
+    // which otherwise silently corrupts a pasted token or secret.
+    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/);
     if (!m) continue;
     let v = m[2];
     if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
