@@ -14,12 +14,12 @@
       "properties": {
         "read": {
           "type": "string",
-          "enum": ["gmail", "imap", "claude-connector"],
+          "enum": ["gmail", "imap"],
           "description": "Inbound provider (must support polling). imap covers ProtonMail-via-Bridge, Fastmail, etc."
         },
         "send": {
           "type": "string",
-          "enum": ["gmail", "imap", "resend", "claude-connector"],
+          "enum": ["gmail", "imap", "resend"],
           "description": "Outbound provider for replies. Omit to reuse `read`."
         }
       }

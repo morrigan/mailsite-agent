@@ -27,8 +27,6 @@ launchctl load ~/Library/LaunchAgents/com.mailsite.agent.plist
 
 Requirements: `claude` CLI logged in; `.env` has `NETLIFY_AUTH_TOKEN` plus
 whatever your providers need (see [docs/providers.md](../../docs/providers.md)).
-If `clients.json` sets `mail.read: "claude-connector"`, authorize the Gmail
-connector in Claude; the skill then uses MCP tools for mail and needs no `GMAIL_*`.
 
 If `logs/run.log` shows `claude not found` (exit 127): the scheduled job runs
 with a minimal PATH. `run-cron.sh` searches the usual install locations, but if

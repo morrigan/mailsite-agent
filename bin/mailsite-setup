@@ -158,13 +158,8 @@ async function main() {
     { value: 'gmail', label: 'Gmail (API)' },
     { value: 'imap', label: 'IMAP, ProtonMail (Bridge), Fastmail, generic' },
     { value: 'resend', label: 'Resend (inbound mode, needs the listener)' },
-    { value: 'claude-connector', label: 'Claude Gmail connector (interactive runs only, not the scheduler)' },
   ]);
   cfg.mail.read = read;
-  if (read === 'claude-connector') {
-    say(C.dim('  note: the Gmail connector exists only in interactive Claude sessions.'));
-    say(C.dim('  The scheduled/headless job cannot use it, so pick gmail or imap for unattended runs.'));
-  }
 
   // --- mail send -----------------------------------------------------------
   say();
@@ -327,7 +322,6 @@ async function main() {
   say();
   say(C.b('Done. Next steps:'));
   say(`  • Clone the client site:  ${C.dim(`git clone <repo> sites/${id}`)}`);
-  if (read === 'claude-connector') say('  • Authorize the Gmail connector in Claude.');
   if (read === 'resend') {
     say('  • Install the Resend CLI:  ' + C.dim('npm i -g resend-cli') + '  and verify a receiving domain.');
     say('  • Start the inbound listener (keeps Resend pollable):');

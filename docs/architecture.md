@@ -29,7 +29,7 @@ that split.
 
 | Port   | Implementation | Swap target |
 |--------|----------------|-------------|
-| mail   | `bin/mailsite-mail`, pluggable providers | gmail, imap (Proton/Fastmail), resend, claude-connector |
+| mail   | `bin/mailsite-mail`, pluggable providers | gmail, imap (Proton/Fastmail), resend |
 | deploy | `bin/mailsite-deploy`, pluggable hosts | netlify, cloudflare (Vercel and others droppable) |
 | image  | `scripts/optimize-image.sh` (ImageMagick/cwebp) | anything with the same CLI shape |
 | vcs    | `git` + `gh` | n/a |

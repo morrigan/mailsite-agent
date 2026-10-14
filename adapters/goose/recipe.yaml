@@ -34,10 +34,6 @@ instructions: |
     mailsite-agent/scripts/optimize-image.sh <in> <out>
     git / gh for branch, commit, push, PR, merge.
 
-  Note: the "claude-connector" mail provider is Claude-only. For Goose,
-  clients.json must set mail.read to "gmail" or "imap" so mailsite-mail works;
-  mail.send may be "gmail", "imap", or "resend".
-
   YOUR job is only the judgment parts: interpret the owner's plain-English
   request, edit the right spot in the site in the existing markup style, and
   write the friendly summary reply. Everything mechanical is a CLI call.
