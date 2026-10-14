@@ -86,17 +86,14 @@ One combination at a time. Switch by editing `clients.json` and the matching
 
 ## Provider setup pointers
 
-- **Gmail.** In Google Cloud: enable the Gmail API and create an OAuth 2.0 client.
-  The simplest way to get a refresh token is the
-  [OAuth Playground](https://developers.google.com/oauthplayground/), which needs
-  a **Web application** client with `https://developers.google.com/oauthplayground`
-  added as an authorized redirect URI. Then in the Playground, tick "Use your own
-  OAuth credentials", authorize scopes `https://www.googleapis.com/auth/gmail.modify`
-  and `https://www.googleapis.com/auth/gmail.send` as the mailbox that receives
-  updates, and exchange the code for a refresh token. Put `GMAIL_CLIENT_ID`,
-  `GMAIL_CLIENT_SECRET`, and `GMAIL_REFRESH_TOKEN` in `.env`. Note: while the
-  OAuth consent screen is in "Testing", refresh tokens expire after 7 days;
-  publish the app (Production) for an unattended job.
+- **Gmail.** Enable the Gmail API, create an OAuth client, and get a refresh
+  token. Full step-by-step, including where each value is and how long it lasts,
+  is in [gmail-setup.md](gmail-setup.md). The short version: a Web-application
+  OAuth client with the Playground redirect URI, scopes
+  `https://www.googleapis.com/auth/gmail.modify` and `.../gmail.send`, then put
+  `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, and `GMAIL_REFRESH_TOKEN` in `.env`.
+  Publish the consent screen to Production so the refresh token does not expire
+  after 7 days.
 - **IMAP / ProtonMail.** Install Proton Mail Bridge (a paid Proton plan). It
   gives you a local IMAP/SMTP host, port, and credentials. Put those in the
   `imap` block of `clients.json` and the `IMAP_*`/`SMTP_*` vars in `.env`, then

@@ -32,18 +32,17 @@ way. This page explains what each prompt is and where to find the value.
 ### Gmail
 
 Needs an OAuth client and a refresh token for the mailbox that receives updates.
+Full step-by-step, with where each value lives and how long it lasts, is in
+[gmail-setup.md](gmail-setup.md).
 
-- **GMAIL_CLIENT_ID / GMAIL_CLIENT_SECRET.** In the
-  [Google Cloud Console](https://console.cloud.google.com/): create a project,
-  enable the Gmail API, configure the OAuth consent screen, then under
-  Credentials create an OAuth client ID of type Desktop app. The client ID and
-  secret are shown on the credential.
-- **GMAIL_REFRESH_TOKEN.** Authorize that client once for the scopes
-  `gmail.modify` and `gmail.send`, then exchange the code for a refresh token.
-  The [OAuth 2.0 Playground](https://developers.google.com/oauthplayground/) does
-  this: in its settings, tick "Use your own OAuth credentials" and paste the
-  client ID/secret, authorize those two scopes, then exchange for tokens and copy
-  the refresh token.
+- **GMAIL_CLIENT_ID / GMAIL_CLIENT_SECRET.** From a Web-application OAuth client
+  you create in the Google Cloud Console (APIs & Services → Credentials), after
+  enabling the Gmail API. The ID and secret show on the client's page.
+- **GMAIL_REFRESH_TOKEN.** Mint it once with the
+  [OAuth 2.0 Playground](https://developers.google.com/oauthplayground/) using
+  your own client credentials and the scopes
+  `https://www.googleapis.com/auth/gmail.modify` and `.../gmail.send`. Publish the
+  consent screen to Production so it does not expire after 7 days.
 
 ### IMAP / SMTP (including ProtonMail)
 

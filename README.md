@@ -79,6 +79,7 @@ tail -f logs/run.log                   # watch runs
 - [self-healing.md](docs/self-healing.md). The supervisor loop that retries, repairs, and keeps running.
 - [architecture.md](docs/architecture.md). Ports and adapters, the run loop, and the open-source vs private split.
 - [providers.md](docs/providers.md). Mail providers, and how to choose read vs send.
+- [gmail-setup.md](docs/gmail-setup.md). Step-by-step Gmail API credentials, and how long they last.
 - [hosting.md](docs/hosting.md). Netlify and Cloudflare Pages.
 - [onboarding.md](docs/onboarding.md). Add a new client site.
 - [security.md](docs/security.md). The trust model and guardrails.
