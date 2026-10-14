@@ -1,15 +1,13 @@
 #!/usr/bin/env bash
 #
 # run-cron.sh (Claude Code adapter), one scheduled tick.
-# Invoked by launchd/cron. Holds a lock so overlapping ticks can't double-run.
-#
-# Resolves the hub root as the great-grandparent of this script
-# (<hub>/mailsite-agent/adapters/claude-code/run-cron.sh).
+# Invoked by launchd/cron or by run-loop.sh. Holds a lock so overlapping ticks
+# can't double-run.
 set -euo pipefail
 
 # pwd -P resolves symlinks, so invoking via the active-agent symlink still finds
-# the real hub three levels up (not two levels above it, which is how a logical
-# path through the symlink lands on /var).
+# the real hub three levels up (not two above it, which is how a logical path
+# through the symlink lands on /var).
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 HUB_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd -P)"
 export MAILSITE_HUB="$HUB_ROOT"
@@ -20,29 +18,46 @@ if [ ! -d "$HUB_ROOT/mailsite-agent" ]; then
   exit 1
 fi
 
-LOG="$HUB_ROOT/logs/run.log"
-mkdir -p "$HUB_ROOT/logs"
+# launchd/cron give a minimal PATH; add the usual CLI install locations.
+# shellcheck source=/dev/null
+. "$HUB_ROOT/mailsite-agent/scripts/agent-path.sh"
 
-# Portable single-instance lock (works on macOS, which lacks flock): an atomic
-# mkdir. A lock older than 30 min is treated as stale (a crashed prior run).
-LOCKDIR="$HUB_ROOT/logs/run.lock.d"
-if ! mkdir "$LOCKDIR" 2>/dev/null; then
-  if [ -n "$(find "$LOCKDIR" -prune -mmin +30 2>/dev/null)" ]; then
-    echo "$(date -u +%FT%TZ) removing stale lock" >>"$LOG"; rmdir "$LOCKDIR" 2>/dev/null || true; mkdir "$LOCKDIR" 2>/dev/null || exit 0
-  else
-    echo "$(date -u +%FT%TZ) another run holds the lock; skipping" >>"$LOG"; exit 0
-  fi
+mkdir -p "$HUB_ROOT/logs"
+LOG="$HUB_ROOT/logs/run.log"
+
+CLAUDE_BIN="${MAILSITE_CLAUDE_BIN:-claude}"
+if ! command -v "$CLAUDE_BIN" >/dev/null 2>&1; then
+  echo "$(date -u +%FT%TZ) claude not found. Set MAILSITE_CLAUDE_BIN to its absolute path, or add it to PATH (current: $PATH)." >>"$LOG"
+  exit 127
 fi
-trap 'rmdir "$LOCKDIR" 2>/dev/null || true' EXIT
+
+# Single-instance lock that records the holder's PID, so a tick that is still
+# running is never cleared. A lock whose PID is dead (a crash) is reclaimed; a
+# lock with no PID recorded is only reclaimed after MAILSITE_LOCK_STALE_MIN min.
+LOCKDIR="$HUB_ROOT/logs/run.lock.d"
+STALE_MIN="${MAILSITE_LOCK_STALE_MIN:-60}"
+if ! mkdir "$LOCKDIR" 2>/dev/null; then
+  lockpid="$(cat "$LOCKDIR/pid" 2>/dev/null || true)"
+  if [ -n "$lockpid" ] && kill -0 "$lockpid" 2>/dev/null; then
+    echo "$(date -u +%FT%TZ) another run (pid $lockpid) is active; skipping" >>"$LOG"; exit 0
+  fi
+  if [ -z "$lockpid" ] && [ -z "$(find "$LOCKDIR" -prune -mmin +"$STALE_MIN" 2>/dev/null)" ]; then
+    echo "$(date -u +%FT%TZ) lock present without a live PID but recent; skipping" >>"$LOG"; exit 0
+  fi
+  echo "$(date -u +%FT%TZ) clearing stale lock (pid ${lockpid:-none} not running)" >>"$LOG"
+  rm -f "$LOCKDIR/pid" 2>/dev/null || true; rmdir "$LOCKDIR" 2>/dev/null || true
+  mkdir "$LOCKDIR" 2>/dev/null || { echo "$(date -u +%FT%TZ) could not acquire lock; skipping" >>"$LOG"; exit 0; }
+fi
+echo "$$" > "$LOCKDIR/pid"
+trap 'rm -f "$LOCKDIR/pid" 2>/dev/null; rmdir "$LOCKDIR" 2>/dev/null || true' EXIT
 
 cd "$HUB_ROOT"
 echo "$(date -u +%FT%TZ) tick start (claude)" >>"$LOG"
 
-# Headless, non-interactive. Permissions come from .claude/settings.json.
 # Capture the agent's real exit code (|| keeps `set -e` from aborting first) so a
 # supervisor (run-loop.sh) can see failures.
 rc=0
-claude -p "Run the process-inbox skill now: read ./PLAYBOOK.md and execute Sweep A then Sweep B." \
+"$CLAUDE_BIN" -p "Run the process-inbox skill now: read mailsite-agent/PLAYBOOK.md and execute Sweep A then Sweep B." \
   >>"$LOG" 2>&1 || rc=$?
 if [ "$rc" -ne 0 ]; then
   echo "$(date -u +%FT%TZ) claude exited $rc" >>"$LOG"

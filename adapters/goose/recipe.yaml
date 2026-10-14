@@ -2,8 +2,8 @@
 # Run: goose run --recipe mailsite-agent/adapters/goose/recipe.yaml
 #
 # Goose brings its own LLM + tools (developer/shell + filesystem). This recipe
-# just points it at the SAME agent-neutral PLAYBOOK.md and the SAME capability
-# CLIs the Claude adapter uses. Nothing in the core changes between agents.
+# just points it at the SAME agent-neutral mailsite-agent/PLAYBOOK.md and the
+# SAME capability CLIs the Claude adapter uses. Nothing changes between agents.
 version: "1.0.0"
 title: "mailsite process-inbox"
 description: >
@@ -16,27 +16,27 @@ extensions:
     name: developer
 
 instructions: |
-  You are the reasoning engine for mailsite-agent. The authoritative procedure
-  is ./PLAYBOOK.md in the current working directory (the hub root).
+  You are the reasoning engine for mailsite-agent. Your working directory is the
+  hub root. The procedure is mailsite-agent/PLAYBOOK.md.
 
-  1. Read ./PLAYBOOK.md and ./clients.json.
+  1. Read mailsite-agent/PLAYBOOK.md and clients.json.
   2. Execute Sweep A, then Sweep B, exactly as the PLAYBOOK describes.
 
   Use these capability CLIs for everything deterministic (run from the hub root):
-    node bin/mailsite-mail fetch-new [--label <State>]
-    node bin/mailsite-mail get <msgId>
-    node bin/mailsite-mail download-attachments <msgId> <destDir>
-    node bin/mailsite-mail reply <msgId> --body-file <file>
-    node bin/mailsite-mail label <msgId> <State>
-    node bin/mailsite-mail thread-replies <msgId> --since <iso>
-    node bin/mailsite-deploy preview <clientId> --branch <b> --pr <n>
-    node bin/mailsite-deploy publish <clientId>
-    scripts/optimize-image.sh <in> <out>
+    node mailsite-agent/bin/mailsite-mail fetch-new [--label <State>]
+    node mailsite-agent/bin/mailsite-mail get <msgId>
+    node mailsite-agent/bin/mailsite-mail download-attachments <msgId> <destDir>
+    node mailsite-agent/bin/mailsite-mail reply <msgId> --body-file <file>
+    node mailsite-agent/bin/mailsite-mail label <msgId> <State>
+    node mailsite-agent/bin/mailsite-mail thread-replies <msgId> --since <iso>
+    node mailsite-agent/bin/mailsite-deploy preview <clientId> --branch <b> --pr <n>
+    node mailsite-agent/bin/mailsite-deploy publish <clientId>
+    mailsite-agent/scripts/optimize-image.sh <in> <out>
     git / gh for branch, commit, push, PR, merge.
 
   Note: the "claude-connector" mail provider is Claude-only. For Goose,
-  clients.json must set mail.read to "gmail" or "imap" so bin/mailsite-mail
-  works; mail.send may be "gmail", "imap", or "resend".
+  clients.json must set mail.read to "gmail" or "imap" so mailsite-mail works;
+  mail.send may be "gmail", "imap", or "resend".
 
   YOUR job is only the judgment parts: interpret the owner's plain-English
   request, edit the right spot in the site in the existing markup style, and

@@ -26,6 +26,11 @@ if [ ! -x "$HUB_ROOT/active-agent/run-cron.sh" ]; then
   exit 1
 fi
 
+# launchd/cron give a minimal PATH; add the usual CLI install locations so the
+# repair pass below can find claude/goose (ticks handle this in run-cron.sh too).
+# shellcheck source=/dev/null
+. "$HUB_ROOT/mailsite-agent/scripts/agent-path.sh"
+
 mkdir -p "$HUB_ROOT/logs"
 LOG="$HUB_ROOT/logs/loop.log"
 RUN_LOG="$HUB_ROOT/logs/run.log"
@@ -53,8 +58,8 @@ run_repair() {
 diagnose and, only if safe, fix the problem, then stop. Recent run log:
 ${recent}"
   case "$runner" in
-    claude-code) claude -p "$prompt" >>"$LOG" 2>&1 ;;
-    goose)       goose run -t "$prompt" >>"$LOG" 2>&1 ;;
+    claude-code) "${MAILSITE_CLAUDE_BIN:-claude}" -p "$prompt" >>"$LOG" 2>&1 ;;
+    goose)       "${MAILSITE_GOOSE_BIN:-goose}" run -t "$prompt" >>"$LOG" 2>&1 ;;
     *) log "unknown runner '$runner'; cannot auto-repair"; return 1 ;;
   esac
 }

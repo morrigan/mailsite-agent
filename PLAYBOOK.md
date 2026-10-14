@@ -12,20 +12,21 @@ you. Read the Guardrails section before doing anything.
 
 ## Capabilities you may use
 
-Run these from the hub root. Each prints JSON to stdout and exits non-zero on
-error. Never reach past them to raw APIs.
+Run these from the hub root (your working directory). Paths to the scripts are
+under `mailsite-agent/`; config, `sites/`, and `logs/` are at the hub root. Each
+prints JSON to stdout and exits non-zero on error. Never reach past them to raw APIs.
 
 | Port   | Command                                                        | Purpose |
 |--------|----------------------------------------------------------------|---------|
-| mail   | `bin/mailsite-mail fetch-new`                                  | list unprocessed update emails |
-| mail   | `bin/mailsite-mail get <msgId>`                                | full body + headers + attachment list |
-| mail   | `bin/mailsite-mail download-attachments <msgId> <destDir>`    | write attachment bytes to disk |
-| mail   | `bin/mailsite-mail reply <msgId> --body-file <f>`             | reply in-thread |
-| mail   | `bin/mailsite-mail label <msgId> <State>`                     | set state label (removes other state labels) |
-| mail   | `bin/mailsite-mail thread-replies <msgId> --since <iso>`      | replies in a thread after a time |
-| deploy | `bin/mailsite-deploy preview <clientId> --branch <b> [--pr <n>]` | wait for the branch's deploy preview; prints `{state,url}` |
-| deploy | `bin/mailsite-deploy publish <clientId>`                      | wait for the production deploy; prints `{state,url}` |
-| image  | `scripts/optimize-image.sh <in> <out>`                        | resize, strip EXIF, re-encode |
+| mail   | `mailsite-agent/bin/mailsite-mail fetch-new`                   | list unprocessed update emails |
+| mail   | `mailsite-agent/bin/mailsite-mail get <msgId>`                 | full body + headers + attachment list |
+| mail   | `mailsite-agent/bin/mailsite-mail download-attachments <msgId> <destDir>` | write attachment bytes to disk |
+| mail   | `mailsite-agent/bin/mailsite-mail reply <msgId> --body-file <f>` | reply in-thread |
+| mail   | `mailsite-agent/bin/mailsite-mail label <msgId> <State>`      | set state label (removes other state labels) |
+| mail   | `mailsite-agent/bin/mailsite-mail thread-replies <msgId> --since <iso>` | replies in a thread after a time |
+| deploy | `mailsite-agent/bin/mailsite-deploy preview <clientId> --branch <b> [--pr <n>]` | wait for the branch's deploy preview; prints `{state,url}` |
+| deploy | `mailsite-agent/bin/mailsite-deploy publish <clientId>`       | wait for the production deploy; prints `{state,url}` |
+| image  | `mailsite-agent/scripts/optimize-image.sh <in> <out>`         | resize, strip EXIF, re-encode |
 | vcs    | `git`, `gh`                                                    | branch / commit / push / PR / merge |
 
 `State` is one of `InProgress`, `AwaitingApproval`, `Published`, `Rejected`,
@@ -40,7 +41,7 @@ mail labels and git branches, so every run is idempotent and safe to re-run.
 
 ### Sweep A: intake new requests
 
-1. `bin/mailsite-mail fetch-new` → array of `{msgId, from, subject}` for emails
+1. `mailsite-agent/bin/mailsite-mail fetch-new` → array of `{msgId, from, subject}` for emails
    that have no state label yet.
 2. For each message:
    a. `get <msgId>` for full `{from, body, attachments[]}`.
@@ -54,7 +55,7 @@ mail labels and git branches, so every run is idempotent and safe to re-run.
       (jpg/jpeg/png/webp/gif/heic). Ignore anything else.
    e. In `sites/<clientId>`: `git fetch`, create branch
       `update/<YYYYMMDD>-<msgId-short>` from `<productionBranch>`.
-   f. For each image: `scripts/optimize-image.sh` it into the site's existing
+   f. For each image: `mailsite-agent/scripts/optimize-image.sh` it into the site's existing
       asset/image directory (match where current images live). Pick descriptive
       filenames from context; never overwrite an existing file unless the request
       clearly means "replace this photo".
@@ -65,7 +66,7 @@ mail labels and git branches, so every run is idempotent and safe to re-run.
       Content only, see Guardrails.
    h. `git add -A && git commit` with a message summarizing the request. Push the
       branch. `gh pr create` with a title and body summarizing the change.
-   i. Call `bin/mailsite-deploy preview <clientId> --branch <branch> --pr <PR#>`.
+   i. Call `mailsite-agent/bin/mailsite-deploy preview <clientId> --branch <branch> --pr <PR#>`.
       It blocks until the preview is `ready`, the same whether the client is on
       Netlify or Cloudflare (the provider comes from config). On `state=="error"`
       or `"timeout"`, label it `NeedsHuman`, notify the developer (see Error
@@ -79,12 +80,12 @@ mail labels and git branches, so every run is idempotent and safe to re-run.
 
 ### Sweep B: handle replies to pending previews
 
-1. `bin/mailsite-mail fetch-new --label AwaitingApproval` → pending messages.
+1. `mailsite-agent/bin/mailsite-mail fetch-new --label AwaitingApproval` → pending messages.
 2. For each, `thread-replies <msgId> --since <time-we-sent-preview>` and take the
    latest reply from an authorized sender of that client:
    - **Approval** (body matches `approve`/`publish`/`go live`, case-insensitive):
      `gh pr merge` the client's PR into `<productionBranch>` (squash). Wait for
-     `bin/mailsite-deploy publish <clientId>` to reach `ready`. `reply` with
+     `mailsite-agent/bin/mailsite-deploy publish <clientId>` to reach `ready`. `reply` with
      "✅ Your changes are live at <url from that command>." `label <msgId> Published`.
    - **Correction** (anything else substantive): treat the reply body as a new
      change request on the same branch. Re-apply edits, push, re-poll the

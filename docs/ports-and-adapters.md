@@ -59,9 +59,11 @@ The `active-agent` symlink in the hub selects which one runs.
 ### Adding a new agent
 
 1. `mkdir adapters/<name>`.
-2. Write its instruction/config file that says "read ./PLAYBOOK.md and follow it;
-   here are the port CLIs." (Copy the Goose recipe's `instructions:` block, which
-   is already agent-neutral prose.)
+2. Write its instruction/config file that says "read mailsite-agent/PLAYBOOK.md
+   and follow it; here are the port CLIs." (Copy the Goose recipe's
+   `instructions:` block, which is already agent-neutral prose.) The agent runs
+   with the hub as its working directory, so script paths are under
+   `mailsite-agent/` and `clients.json`/`sites/`/`logs/` are at the hub root.
 3. Write a `run-cron.sh` that takes a single-instance lock and invokes the agent
    headlessly.
 4. `ln -sfn adapters/<name> active-agent` and run one tick.

@@ -5,39 +5,41 @@ description: Process emailed website-change requests: verify the sender, apply c
 
 # process-inbox (Claude Code adapter)
 
-You are the reasoning engine for mailsite-agent. The procedure lives in the hub's
-`PLAYBOOK.md`. Read it now and follow it exactly. This file only maps the
-PLAYBOOK's capabilities onto the concrete tools you have.
+You are the reasoning engine for mailsite-agent. The procedure lives in
+`mailsite-agent/PLAYBOOK.md`. Read it now and follow it exactly. This file only
+maps the PLAYBOOK's capabilities onto the concrete tools you have.
 
 ## First step every run
 
-Read `./PLAYBOOK.md` (from the hub root, i.e. the current working directory).
-Then read `./clients.json` for config. Execute Sweep A, then Sweep B.
+Your working directory is the hub root. Read `mailsite-agent/PLAYBOOK.md` and
+`clients.json`. Execute Sweep A, then Sweep B.
 
 ## Capabilities to tools
 
-Use the capability CLIs for everything deterministic. From the hub root:
+Use the capability CLIs for everything deterministic. Run them from the hub root
+(their paths are under `mailsite-agent/`):
 
-- `bin/mailsite-mail fetch-new [--label <State>]`
-- `bin/mailsite-mail get <msgId>`
-- `bin/mailsite-mail download-attachments <msgId> <destDir>`
-- `bin/mailsite-mail reply <msgId> --body-file <file>`
-- `bin/mailsite-mail label <msgId> <State>`
-- `bin/mailsite-mail thread-replies <msgId> --since <iso>`
-- `bin/mailsite-deploy preview <clientId> --branch <b> --pr <n>`
-- `bin/mailsite-deploy publish <clientId>`  (host is per-client: netlify | cloudflare)
-- `scripts/optimize-image.sh <in> <out>`
+- `mailsite-agent/bin/mailsite-mail fetch-new [--label <State>]`
+- `mailsite-agent/bin/mailsite-mail get <msgId>`
+- `mailsite-agent/bin/mailsite-mail download-attachments <msgId> <destDir>`
+- `mailsite-agent/bin/mailsite-mail reply <msgId> --body-file <file>`
+- `mailsite-agent/bin/mailsite-mail label <msgId> <State>`
+- `mailsite-agent/bin/mailsite-mail thread-replies <msgId> --since <iso>`
+- `mailsite-agent/bin/mailsite-deploy preview <clientId> --branch <b> --pr <n>`
+- `mailsite-agent/bin/mailsite-deploy publish <clientId>`  (host is per-client: netlify | cloudflare)
+- `mailsite-agent/scripts/optimize-image.sh <in> <out>`
 - `git` and `gh` for branch / commit / push / PR / merge.
 
 ### Optional Claude-only fast path
 
 If `clients.json` has `"mail": { "read": "claude-connector" }`, do **not** call
-`bin/mailsite-mail` for mail. Instead perform the same mail steps with the Gmail
-MCP tools (`mcp__…Gmail__search_threads`, `get_message`, `reply`,
+`mailsite-agent/bin/mailsite-mail` for mail. Instead perform the same mail steps
+with the Gmail MCP tools (`mcp__…Gmail__search_threads`, `get_message`, `reply`,
 `update_message_labels`, etc.), keeping the exact same state-label semantics
 defined in the PLAYBOOK. All other steps (git, deploy, image) are unchanged.
-For any other provider value (`gmail`, `imap`, `resend`), use `bin/mailsite-mail`
-as above; it routes reads and sends to the configured providers for you.
+For any other provider value (`gmail`, `imap`, `resend`), use
+`mailsite-agent/bin/mailsite-mail` as above; it routes reads and sends to the
+configured providers for you.
 
 ## Your job vs. the CLIs' job
 
