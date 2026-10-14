@@ -3,7 +3,7 @@
 **Let non-technical site owners update their static website by sending an email.**
 
 You build someone a static site (by hand, or with a coding agent) and host it on
-Netlify or Cloudflare Pages. Later the owner wants to change some text or add a
+Netlify or Cloudflare (Pages or Workers). Later the owner wants to change some text or add a
 photo. Instead of learning git or pinging you, they email the change. An agent
 checks who sent it, makes the edit, builds a preview, and emails back the link.
 The owner replies "approve" and it goes live.
@@ -15,8 +15,9 @@ Owner email ─▶ agent verifies sender ─▶ edits site ─▶ host preview
 
 It runs under Claude Code or Goose. It reads and sends mail through Gmail (via
 the Gmail API, or via IMAP/SMTP with an app password), any other IMAP host
-(ProtonMail via Bridge, Fastmail, iCloud), or Resend, and deploys to Netlify or
-Cloudflare Pages. Nothing goes live without an approval reply.
+(ProtonMail via Bridge, Fastmail, iCloud), or Resend, and deploys to Netlify,
+Cloudflare Pages, or Cloudflare Workers. Nothing goes live without an approval
+reply.
 [docs/architecture.md](docs/architecture.md) explains how it fits together.
 
 ## Setup
@@ -81,7 +82,7 @@ tail -f logs/run.log                   # watch runs
 - [architecture.md](docs/architecture.md). Ports and adapters, the run loop, and the open-source vs private split.
 - [providers.md](docs/providers.md). Mail providers, and how to choose read vs send.
 - [gmail-setup.md](docs/gmail-setup.md). Step-by-step Gmail API credentials (or the simpler IMAP app-password route).
-- [hosting.md](docs/hosting.md). Netlify and Cloudflare Pages.
+- [hosting.md](docs/hosting.md). Netlify, Cloudflare Pages, and Cloudflare Workers.
 - [onboarding.md](docs/onboarding.md). Add a new client site.
 - [security.md](docs/security.md). The trust model and guardrails.
 - [ports-and-adapters.md](docs/ports-and-adapters.md). Add a mail or deploy provider, or a new agent.

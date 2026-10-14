@@ -6,9 +6,10 @@
  * host is chosen per client in clients.json:
  *
  *   "hosting": { "provider": "netlify",    "netlify":    { "siteName": "...", "siteId": "..." } }
- *   "hosting": { "provider": "cloudflare", "cloudflare": { "projectName": "...", "accountId": "..." } }
+ *   "hosting": { "provider": "cloudflare", "cloudflare": { "projectName": "...", "accountId": "..." } }           // Pages (default)
+ *   "hosting": { "provider": "cloudflare", "cloudflare": { "type": "workers", "workerName": "...", "accountId": "..." } }  // Workers
  *
- * Deploys are triggered by git push (both providers build on push / PR); this
+ * Deploys are triggered by git push (every provider builds on push / PR); this
  * CLI observes deploy state and resolves the preview/production URL. Prints JSON.
  *
  * Subcommands:
@@ -53,7 +54,7 @@ async function main() {
     timeoutSec: Number(flags.timeout || 300),
     intervalSec: Number(flags.interval || 10),
   });
-  const opts = { branch: flags.branch, pr: flags.pr, dir: flags.dir };
+  const opts = { branch: flags.branch, pr: flags.pr, dir: flags.dir, since: flags.since };
 
   switch (cmd) {
     case 'preview':

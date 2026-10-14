@@ -1,8 +1,9 @@
 # Hosting providers
 
 Where a site deploys is chosen per client in `clients.json`, so different clients
-can live on different hosts. Netlify and Cloudflare Pages ship today, and the
-deploy port is pluggable, so more can be added without touching the core.
+can live on different hosts. Netlify, Cloudflare Pages, and Cloudflare Workers
+ship today, and the deploy port is pluggable, so more can be added without
+touching the core.
 
 ```jsonc
 // Netlify
@@ -11,12 +12,28 @@ deploy port is pluggable, so more can be added without touching the core.
   "netlify": { "siteName": "acme-cafe", "siteId": "<site API ID>" }
 }
 
-// Cloudflare Pages
+// Cloudflare Pages (the default when type is omitted)
 "hosting": {
   "provider": "cloudflare",
-  "cloudflare": { "projectName": "jane-studio", "accountId": "<optional, or env>" }
+  "cloudflare": { "type": "pages", "projectName": "jane-studio", "accountId": "<optional, or env>" }
+}
+
+// Cloudflare Workers (incl. Workers with static assets)
+"hosting": {
+  "provider": "cloudflare",
+  "cloudflare": {
+    "type": "workers",
+    "workerName": "sipa-diving",       // the Worker's script name
+    "accountId": "<optional, or env>",
+    "subdomain": "<optional>",         // your *.workers.dev subdomain; auto-detected if omitted
+    "productionUrl": "<optional>"      // pin the production URL; a custom domain is auto-detected otherwise
+  }
 }
 ```
+
+Both Cloudflare types share `provider: "cloudflare"` and the same API token; the
+`type` field picks Pages (the default) or Workers. Pages uses `projectName`;
+Workers uses `workerName` (`projectName` is still accepted as an alias).
 
 ## How deploys happen
 
@@ -29,16 +46,28 @@ URLs; it does not push the files itself.
 |---|---|---|---|
 | **Netlify** | PR / branch deploy | push to production branch | deploy's `deploy_ssl_url`, or `deploy-preview-<PR>--<site>.netlify.app` |
 | **Cloudflare Pages** | push to a non-production branch | push to production branch | deployment `aliases[0]` / `url` (`*.pages.dev`) |
+| **Cloudflare Workers** | branch build uploads a version | production build promotes a deployment | version preview `<id-prefix>-<worker>.<subdomain>.workers.dev`; production custom domain or `<worker>.<subdomain>.workers.dev` |
 
 The per-site setup is the same on either host: connect the repo and enable
 preview deployments for branches and PRs.
+
+### A note on the Workers preview match
+
+Worker versions carry no branch name (that mapping lives in the Workers Builds
+API, which needs a separate token scope). So the Workers provider identifies a
+build by time: the newest version created at or after the run started is the one
+this run's push produced. The cron wrapper holds a lock, so only one build is
+ever in flight, which keeps the match unambiguous. If you drive a run by hand
+long after the push, pass `--since <epoch|ISO>` to `mailsite-deploy` to set that
+baseline yourself. Preview URLs must be enabled for the Worker (they are, by
+default, whenever `workers.dev` is on).
 
 ## Credentials (.env)
 
 | Provider | Env | Scope |
 |---|---|---|
 | Netlify | `NETLIFY_AUTH_TOKEN` | personal access token |
-| Cloudflare | `CLOUDFLARE_API_TOKEN` (+ `CLOUDFLARE_ACCOUNT_ID` or per-client `accountId`) | token with Cloudflare Pages read |
+| Cloudflare | `CLOUDFLARE_API_TOKEN` (+ `CLOUDFLARE_ACCOUNT_ID` or per-client `accountId`) | Pages: read on Pages. Workers: read on Workers Scripts (plus the `workers.dev` subdomain, read automatically) |
 
 ## The deploy port contract
 

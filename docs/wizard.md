@@ -13,7 +13,7 @@ way. This page explains what each prompt is and where to find the value.
   which one sends replies. They can differ. See [providers.md](providers.md) for
   the full matrix; the short version is that reading needs Gmail or IMAP, and
   sending can also use Resend.
-- **Hosting provider for this site.** Netlify or Cloudflare Pages. See
+- **Hosting provider for this site.** Netlify, Cloudflare Pages, or Cloudflare Workers. See
   [hosting.md](hosting.md).
 - **How will you run it?** Native (launchd/cron on this machine) or Docker. This
   only changes the closing instructions and an optional launchd step.
@@ -107,3 +107,17 @@ The site you hand off. One client now; add more later with
 - **CLOUDFLARE_API_TOKEN.** Create it under My Profile, API Tokens, Create Token.
   Give it the Cloudflare Pages Read permission (Edit if you later add direct
   uploads).
+
+### Cloudflare Workers
+
+Pick this if your site is a Worker (including a Worker that serves static assets)
+rather than a Pages project.
+
+- **Cloudflare Worker (script) name.** The Worker's name under Workers & Pages in
+  the [Cloudflare dashboard](https://dash.cloudflare.com/). It must be connected
+  to the site's git repo (Workers Builds) with preview URLs on, so pushes build.
+- **Cloudflare account id.** Same as above: the hex string in the dashboard URL,
+  or leave blank to use `CLOUDFLARE_ACCOUNT_ID`.
+- **CLOUDFLARE_API_TOKEN.** Give this token the Workers Scripts Read permission.
+  The preview URL uses your `*.workers.dev` subdomain, which the agent reads from
+  the API automatically; set `subdomain` in `clients.json` only to override it.

@@ -223,19 +223,24 @@ async function main() {
   const productionBranch = await prompt('  Production branch', { def: 'main' });
 
   say();
-  const provider = await choice('  Hosting provider for this site', [
+  const hostTarget = await choice('  Hosting provider for this site', [
     { value: 'netlify', label: 'Netlify' },
-    { value: 'cloudflare', label: 'Cloudflare Pages' },
+    { value: 'cloudflare-pages', label: 'Cloudflare Pages' },
+    { value: 'cloudflare-workers', label: 'Cloudflare Workers' },
   ]);
-  const hosting = { provider };
-  if (provider === 'netlify') {
+  const hosting = { provider: hostTarget === 'netlify' ? 'netlify' : 'cloudflare' };
+  if (hostTarget === 'netlify') {
     hosting.netlify = {
       siteName: await prompt('  Netlify site name (the *.netlify.app subdomain)', { required: true }),
       siteId: await prompt('  Netlify site API ID'),
     };
     env.NETLIFY_AUTH_TOKEN = await prompt('  NETLIFY_AUTH_TOKEN', { def: parseEnv(path.join(HUB, '.env')).NETLIFY_AUTH_TOKEN || '' });
   } else {
-    hosting.cloudflare = { projectName: await prompt('  Cloudflare Pages project name', { required: true }) };
+    if (hostTarget === 'cloudflare-workers') {
+      hosting.cloudflare = { type: 'workers', workerName: await prompt('  Cloudflare Worker (script) name', { required: true }) };
+    } else {
+      hosting.cloudflare = { type: 'pages', projectName: await prompt('  Cloudflare Pages project name', { required: true }) };
+    }
     const acct = await prompt('  Cloudflare account id (blank = use CLOUDFLARE_ACCOUNT_ID env)');
     if (acct) hosting.cloudflare.accountId = acct;
     env.CLOUDFLARE_API_TOKEN = await prompt('  CLOUDFLARE_API_TOKEN', { def: parseEnv(path.join(HUB, '.env')).CLOUDFLARE_API_TOKEN || '' });

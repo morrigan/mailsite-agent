@@ -114,8 +114,13 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {
-                "projectName": { "type": "string", "description": "Cloudflare Pages project name." },
-                "accountId": { "type": "string", "description": "Account ID (or set CLOUDFLARE_ACCOUNT_ID in .env)." }
+                "type": { "enum": ["pages", "workers"], "description": "Cloudflare product. Defaults to 'pages'." },
+                "projectName": { "type": "string", "description": "Pages project name (also accepted as the Workers script name)." },
+                "workerName": { "type": "string", "description": "Workers script name (type 'workers'). Alias: scriptName, or projectName." },
+                "scriptName": { "type": "string", "description": "Alias for workerName." },
+                "accountId": { "type": "string", "description": "Account ID (or set CLOUDFLARE_ACCOUNT_ID in .env)." },
+                "subdomain": { "type": "string", "description": "Workers only: your *.workers.dev subdomain. Auto-detected from the API if omitted." },
+                "productionUrl": { "type": "string", "description": "Workers only: pin the production URL. A custom domain is auto-detected otherwise." }
               }
             }
           }
