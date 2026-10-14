@@ -11,11 +11,13 @@
     "mailsite-setup": "bin/mailsite-setup",
     "mailsite-mail": "bin/mailsite-mail",
     "mailsite-deploy": "bin/mailsite-deploy",
+    "mailsite-gmail-auth": "bin/mailsite-gmail-auth",
     "mailsite-resend-listener": "bin/mailsite-resend-listener"
   },
   "scripts": {
     "setup": "node bin/mailsite-setup",
     "doctor": "bash scripts/doctor.sh",
+    "gmail-auth": "node bin/mailsite-gmail-auth",
     "mail": "node bin/mailsite-mail",
     "deploy": "node bin/mailsite-deploy"
   },

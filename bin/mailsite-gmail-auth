@@ -1,0 +1,84 @@
+#!/usr/bin/env node
+/**
+ * mailsite-gmail-auth — mint a Gmail refresh token for the exact OAuth client in
+ * your .env, over a localhost loopback. This guarantees the token belongs to
+ * that client, avoiding the OAuth Playground "unauthorized_client" mismatch.
+ *
+ * Prereqs: GMAIL_CLIENT_ID and GMAIL_CLIENT_SECRET already in the hub .env.
+ *   - Easiest: make the OAuth client a "Desktop app" (loopback is allowed with
+ *     no redirect-URI registration).
+ *   - Or keep a "Web application" client and add this redirect URI to it:
+ *       http://localhost:8402   (or whatever MAILSITE_OAUTH_PORT you set)
+ *
+ * Run from the hub root:  node mailsite-agent/bin/mailsite-gmail-auth
+ * It prints an URL, you open it and sign in as the mailbox you READ
+ * (e.g. belminmalibot@gmail.com) and allow, then it writes GMAIL_REFRESH_TOKEN
+ * into .env for you.
+ */
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+const http = require('http');
+const { loadEnv, die } = require('./lib/common');
+
+const hub = process.env.MAILSITE_HUB || process.cwd();
+loadEnv(hub);
+
+const id = process.env.GMAIL_CLIENT_ID;
+const secret = process.env.GMAIL_CLIENT_SECRET;
+if (!id || !secret) die('Set GMAIL_CLIENT_ID and GMAIL_CLIENT_SECRET in .env first (see docs/gmail-setup.md).');
+
+const PORT = Number(process.env.MAILSITE_OAUTH_PORT || 8402);
+const redirect = `http://localhost:${PORT}`;
+const scope = 'https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.send';
+const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' + new URLSearchParams({
+  client_id: id, redirect_uri: redirect, response_type: 'code',
+  scope, access_type: 'offline', prompt: 'consent',
+});
+
+function upsertEnv(key, value) {
+  const f = path.join(hub, '.env');
+  let lines = fs.existsSync(f) ? fs.readFileSync(f, 'utf8').split('\n') : [];
+  let found = false;
+  lines = lines.map((l) => (new RegExp(`^${key}=`).test(l) ? (found = true, `${key}=${value}`) : l));
+  if (!found) { if (lines.length && lines[lines.length - 1] !== '') lines.push(''); lines.push(`${key}=${value}`); }
+  fs.writeFileSync(f, lines.join('\n'));
+}
+
+console.log(`\nRedirect URI in use: ${redirect}`);
+console.log('(Desktop OAuth client: nothing to register. Web client: add that exact URI to it.)\n');
+console.log('Open this URL, sign in as the mailbox you READ, and allow:\n');
+console.log(authUrl + '\n');
+console.log(`Waiting for the redirect on ${redirect} ...`);
+
+const server = http.createServer(async (req, res) => {
+  const u = new URL(req.url, redirect);
+  const code = u.searchParams.get('code');
+  const err = u.searchParams.get('error');
+  if (err) { res.end(`Authorization error: ${err}`); console.error(`\nAuthorization error: ${err}`); server.close(); process.exit(1); }
+  if (!code) { res.end('Waiting for authorization...'); return; }
+  res.end('Authorized. You can close this tab and return to the terminal.');
+  try {
+    const r = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ code, client_id: id, client_secret: secret, redirect_uri: redirect, grant_type: 'authorization_code' }),
+    });
+    const j = await r.json();
+    if (!r.ok) { console.error(`\nToken exchange failed: ${r.status} ${JSON.stringify(j)}`); server.close(); process.exit(1); }
+    if (!j.refresh_token) {
+      console.error('\nNo refresh_token returned. Revoke prior access at https://myaccount.google.com/permissions and run again.');
+      server.close(); process.exit(1);
+    }
+    upsertEnv('GMAIL_REFRESH_TOKEN', j.refresh_token);
+    console.log('\n✓ GMAIL_REFRESH_TOKEN written to .env. Verify with:');
+    console.log('    node mailsite-agent/bin/mailsite-mail fetch-new\n');
+  } catch (e) {
+    console.error('\n' + (e && e.stack ? e.stack : e));
+  }
+  server.close();
+  process.exit(0);
+});
+
+server.on('error', (e) => die(`Could not listen on ${redirect}: ${e.message}. Set MAILSITE_OAUTH_PORT to a free port.`));
+server.listen(PORT, '127.0.0.1');

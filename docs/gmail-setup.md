@@ -51,6 +51,26 @@ for the JSON. These are `GMAIL_CLIENT_ID` and `GMAIL_CLIENT_SECRET`.
 
 ## 5. Get the refresh token
 
+### Easiest: the built-in helper
+
+`mailsite-gmail-auth` mints the token against the exact client in your `.env`, so
+it can't end up tied to the wrong client (the usual `unauthorized_client` cause),
+and it requests both scopes so you can't hit a 403. Make the OAuth client a
+**Desktop app** (then there's no redirect URI to register), put its id/secret in
+`.env`, and run from the hub root:
+
+```bash
+node mailsite-agent/bin/mailsite-gmail-auth
+```
+
+Open the URL it prints, sign in as the mailbox you read, allow (click through the
+"unverified app" warning for your own app), and it writes `GMAIL_REFRESH_TOKEN`
+into `.env`. If you keep a Web-application client instead, add
+`http://localhost:8402` as an authorized redirect URI first (or set
+`MAILSITE_OAUTH_PORT`).
+
+### Or by hand: the OAuth Playground
+
 Open the [OAuth 2.0 Playground](https://developers.google.com/oauthplayground/).
 
 1. Click the gear icon (top right) → tick **Use your own OAuth credentials** →
@@ -99,3 +119,12 @@ tick then fails and the self-healing loop raises `logs/NEEDS_ATTENTION` rather
 than stalling silently. Redo step 5 to mint a new refresh token and update
 `.env`. If you had left the app in Testing, publish it to Production first so it
 does not happen again.
+
+Other errors seen at `fetch-new`:
+
+- `unauthorized_client` (401): the refresh token was issued by a different OAuth
+  client than the id/secret in `.env`. Re-mint with the helper (it uses your
+  client) or make sure the Playground had "Use your own OAuth credentials" ticked.
+- `insufficient authentication scopes` (403): the token was granted without
+  `gmail.modify` (needed to read and label). Re-mint authorizing **both**
+  `gmail.modify` and `gmail.send`. The helper always requests both.
