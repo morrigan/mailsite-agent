@@ -41,7 +41,10 @@ in [providers.md](providers.md) and [hosting.md](hosting.md).
 
 ## The run loop
 
-A scheduled tick runs two sweeps and exits. Repeating a tick is safe.
+A tick runs two sweeps and exits. Repeating a tick is safe. The self-healing
+supervisor (`bin/run-loop.sh`) runs these ticks on an interval and is installed
+as a native service by `scripts/install-service.sh` (launchd on macOS, systemd
+on Linux), or supervised by Docker. See [self-healing.md](self-healing.md).
 
 ```
 Owner email ─▶ agent verifies sender ─▶ edits site ─▶ host preview

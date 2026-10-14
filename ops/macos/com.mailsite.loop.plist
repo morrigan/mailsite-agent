@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  launchd agent for the self-healing loop (native). This is the alternative to
-  the interval tick in adapters/claude-code/com.mailsite.agent.plist: run ONE of
-  them, not both. KeepAlive restarts the loop if it ever exits.
+  launchd agent for the self-healing loop (native macOS). KeepAlive restarts the
+  loop if it ever exits. This is the native supervisor on macOS.
 
-  Install:
+  The installer writes and loads this for you:
+    bash mailsite-agent/scripts/install-service.sh install
+
+  To install by hand instead:
     1. Replace REPLACE_ME/hub with your absolute hub path (two places).
     2. cp to ~/Library/LaunchAgents/ and:
        launchctl load ~/Library/LaunchAgents/com.mailsite.loop.plist

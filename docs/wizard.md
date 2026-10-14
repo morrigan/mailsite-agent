@@ -15,10 +15,12 @@ way. This page explains what each prompt is and where to find the value.
   sending can also use Resend.
 - **Hosting provider for this site.** Netlify, Cloudflare Pages, or Cloudflare Workers. See
   [hosting.md](hosting.md).
-- **How will you run it?** Native (launchd/cron on this machine) or Docker. This
-  only changes the closing instructions and an optional launchd step.
-- **Install IMAP packages / Install the launchd scheduler.** Yes/no prompts shown
-  only when relevant. Safe to answer no and do it later.
+- **How will you run it?** Native (on this machine) or Docker. This only changes
+  the closing instructions and an optional service-install step.
+- **Install IMAP packages / Install the self-healing service.** Yes/no prompts
+  shown only when relevant. The service prompt installs the loop as a launchd
+  (macOS) or systemd (Linux) service via `scripts/install-service.sh`. Safe to
+  answer no and do it later.
 
 ## Mail addresses
 

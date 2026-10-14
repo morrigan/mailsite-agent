@@ -17,6 +17,7 @@
   "scripts": {
     "setup": "node bin/mailsite-setup",
     "doctor": "bash scripts/doctor.sh",
+    "service": "bash scripts/install-service.sh",
     "gmail-auth": "node bin/mailsite-gmail-auth",
     "mail": "node bin/mailsite-mail",
     "deploy": "node bin/mailsite-deploy"

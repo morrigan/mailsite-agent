@@ -1,0 +1,27 @@
+# systemd user service for the Resend inbound listener (only needed when a client
+# uses mail.read = "resend"). Restart=always restarts it if the stream drops.
+#
+# Requires the `resend` CLI (npm i -g resend-cli) and RESEND_API_KEY in <hub>/.env.
+#
+# Install by hand:
+#   1. Replace REPLACE_ME/hub with your absolute hub path (two places).
+#   2. cp to ~/.config/systemd/user/mailsite-resend-listener.service
+#   3. systemctl --user daemon-reload
+#      systemctl --user enable --now mailsite-resend-listener
+#      loginctl enable-linger "$USER"
+
+[Unit]
+Description=mailsite-agent Resend inbound listener
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=REPLACE_ME/hub
+Environment=MAILSITE_HUB=REPLACE_ME/hub
+ExecStart=REPLACE_ME/hub/mailsite-agent/bin/mailsite-resend-listener
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target

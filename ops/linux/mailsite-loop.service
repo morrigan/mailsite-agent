@@ -1,0 +1,30 @@
+# systemd user service for the mailsite-agent self-healing loop (native Linux).
+# Restart=always is the Linux equivalent of launchd KeepAlive: it keeps run-loop.sh
+# alive, and the loop ticks every MAILSITE_INTERVAL seconds on its own.
+#
+# The installer writes and enables this for you:
+#   bash mailsite-agent/scripts/install-service.sh install
+#
+# To install by hand instead:
+#   1. Replace REPLACE_ME/hub with your absolute hub path (two places).
+#   2. cp to ~/.config/systemd/user/mailsite-loop.service
+#   3. systemctl --user daemon-reload
+#      systemctl --user enable --now mailsite-loop
+#   4. loginctl enable-linger "$USER"   # so it runs without an active login
+
+[Unit]
+Description=mailsite-agent self-healing loop
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=REPLACE_ME/hub
+Environment=MAILSITE_HUB=REPLACE_ME/hub
+Environment=MAILSITE_INTERVAL=600
+ExecStart=REPLACE_ME/hub/mailsite-agent/bin/run-loop.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target

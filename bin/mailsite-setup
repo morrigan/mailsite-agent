@@ -16,7 +16,6 @@
 
 const fs = require('fs');
 const path = require('path');
-const os = require('os');
 const { execFileSync } = require('child_process');
 
 const SELF_DIR = __dirname;                              // <hub>/mailsite-agent/bin
@@ -254,7 +253,7 @@ async function main() {
   // --- deployment target ---------------------------------------------------
   say();
   const target = await choice('How will you run it?', [
-    { value: 'native', label: 'Native (launchd/cron on this machine)' },
+    { value: 'native', label: 'Native (installs a launchd/systemd service on this machine)' },
     { value: 'docker', label: 'Docker' },
   ]);
 
@@ -307,15 +306,10 @@ async function main() {
       catch { say('  (npm install failed, run it yourself later)'); }
     }
   }
-  if (target === 'native' && await yesno('Install the launchd scheduler now (runs every 10 min)?', false)) {
+  if (target === 'native' && await yesno('Install the self-healing service now (starts on boot, restarts on crash)?', false)) {
     try {
-      const src = fs.readFileSync(path.join(AGENT_DIR, 'adapters', 'claude-code', 'com.mailsite.agent.plist'), 'utf8');
-      const dest = path.join(os.homedir(), 'Library', 'LaunchAgents', 'com.mailsite.agent.plist');
-      fs.mkdirSync(path.dirname(dest), { recursive: true });
-      fs.writeFileSync(dest, src.replace(/REPLACE_ME\/hub/g, HUB));
-      execFileSync('launchctl', ['load', dest], { stdio: 'inherit' });
-      say(C.ok('✓') + ' launchd scheduler loaded');
-    } catch (e) { say('  (could not load launchd agent: ' + e.message + ')'); }
+      execFileSync('bash', [path.join(AGENT_DIR, 'scripts', 'install-service.sh'), 'install'], { stdio: 'inherit', cwd: HUB });
+    } catch (e) { say('  (could not install the service: ' + e.message + ')'); }
   }
 
   // --- summary -------------------------------------------------------------
@@ -326,13 +320,14 @@ async function main() {
     say('  • Install the Resend CLI:  ' + C.dim('npm i -g resend-cli') + '  and verify a receiving domain.');
     say('  • Start the inbound listener (keeps Resend pollable):');
     if (target === 'docker') say('      ' + C.dim('docker compose -f mailsite-agent/docker/docker-compose.yml --profile resend up -d'));
-    else say('      ' + C.dim('see mailsite-agent/ops/com.mailsite.resend-listener.plist'));
+    else say('      ' + C.dim('see mailsite-agent/ops/<macos|linux>/ for the resend-listener service'));
   }
   if (target === 'docker') {
     say('  • Add ANTHROPIC_API_KEY + GH_TOKEN to .env, then:');
     say('      ' + C.dim('docker compose -f mailsite-agent/docker/docker-compose.yml up -d --build'));
   } else {
     say('  • Try one run:  ' + C.dim('./active-agent/run-cron.sh && tail -f logs/run.log'));
+    say('  • Run it unattended:  ' + C.dim('bash mailsite-agent/scripts/install-service.sh install'));
   }
   say('  • Verify prerequisites anytime:  ' + C.dim('bash mailsite-agent/scripts/doctor.sh'));
   say();

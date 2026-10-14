@@ -53,9 +53,10 @@ one runner, Claude Code (`claude`) or Goose (`goose`). The core has no
 dependencies; only the IMAP provider pulls extra packages.
 
 ```bash
-bash mailsite-agent/scripts/doctor.sh      # check prerequisites (--install to auto-install)
-node mailsite-agent/bin/mailsite-setup     # wizard: writes clients.json + .env, wires active-agent
-./active-agent/run-cron.sh                 # one manual run (schedule it via your adapter's install.md)
+bash mailsite-agent/scripts/doctor.sh          # check prerequisites (--install to auto-install)
+node mailsite-agent/bin/mailsite-setup         # wizard: writes clients.json + .env, wires active-agent
+./active-agent/run-cron.sh                     # one manual run
+bash mailsite-agent/scripts/install-service.sh # run it unattended (installs the right service for your OS)
 ```
 
 The wizard asks for your runner, mail provider(s) and credentials, and a first
@@ -63,9 +64,10 @@ client and host; [docs/wizard.md](docs/wizard.md) explains every prompt and wher
 to find each value. To configure by hand instead, copy `clients.sample.json` to
 `clients.json` and `.env.example` to `.env` and edit them.
 
-For unattended operation, run the self-healing supervisor
-(`mailsite-agent/bin/run-loop.sh`) rather than a one-off tick. It retries,
-repairs, and keeps running through failures. Docker runs it for you. See
+For unattended operation, `scripts/install-service.sh` installs the self-healing
+supervisor (`bin/run-loop.sh`) as a native service: launchd on macOS, a systemd
+user service on Linux, with a cron fallback. It retries, repairs, and keeps
+running through failures. Docker runs it for you on any OS, Windows included. See
 [docs/self-healing.md](docs/self-healing.md).
 
 ### Then, for either option

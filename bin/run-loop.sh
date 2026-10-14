@@ -13,7 +13,8 @@
 #   MAILSITE_MAX_REPAIR consecutive failures to repair before the breaker opens (default 3)
 #   MAILSITE_REPAIR     set to 0 to disable the agent repair pass (retry only)
 #
-# NOTE: do not also run the interval launchd/cron tick; use the loop OR the tick.
+# This is the one native runtime. Install it as a service (launchd on macOS,
+# systemd on Linux) with scripts/install-service.sh; Docker runs it for you.
 set -uo pipefail   # deliberately not -e: the loop must survive failures
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"

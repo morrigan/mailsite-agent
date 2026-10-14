@@ -45,7 +45,8 @@ Two pieces make Resend a first-class reader.
    `resend emails receiving listen --json` continuously and writes each inbound
    email to `<hub>/logs/resend-inbox/<id>.json`. That turns the live stream into
    a pollable local maildir. Run it under a supervisor so it stays up:
-   - macOS: `ops/com.mailsite.resend-listener.plist` (KeepAlive).
+   - macOS: `ops/macos/com.mailsite.resend-listener.plist` (launchd KeepAlive).
+   - Linux: `ops/linux/mailsite-resend-listener.service` (systemd user service).
    - Docker: `docker compose -f mailsite-agent/docker/docker-compose.yml --profile resend up -d`.
 2. **Local state store.** `bin/lib/state-store.js` records each message's state
    in `<hub>/logs/mail-state.json`, standing in for the labels Gmail and IMAP
@@ -58,12 +59,12 @@ only the storage underneath differs. Setup:
 ```bash
 npm install -g resend-cli          # the CLI the listener drives
 # .env: RESEND_API_KEY=...; clients.json: "mail": { "read": "resend", "send": "resend" }
-# verify a receiving domain in Resend, then start the listener (launchd/Docker above)
+# verify a receiving domain in Resend, then start the listener (macOS/Linux/Docker above)
 ```
 
-The trade-off is operational. You run one always-on listener process instead of
-relying on the stateless cron tick alone. To skip that, read via Gmail or IMAP
-and send via Resend, which needs no listener.
+The trade-off is operational. You run one always-on listener process on top of
+the stateless poll that Gmail and IMAP get for free. To skip it, read via Gmail
+or IMAP and send via Resend, which needs no listener.
 
 > Field-mapping note: Resend's public docs don't pin the exact inbound JSON field
 > names, so `bin/lib/providers/resend.js` extracts them defensively (trying

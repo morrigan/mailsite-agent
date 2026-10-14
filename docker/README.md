@@ -39,5 +39,6 @@ Change the poll interval with `MAILSITE_INTERVAL` (seconds) in the compose file.
 ## Native instead?
 
 You don't need Docker. `bash mailsite-agent/scripts/doctor.sh --install` installs
-the native prerequisites, then schedule `active-agent/run-cron.sh` with launchd
-on macOS (see `adapters/claude-code/com.mailsite.agent.plist`) or cron on Linux.
+the native prerequisites, then `bash mailsite-agent/scripts/install-service.sh`
+installs the self-healing loop as a service for your OS (launchd on macOS,
+systemd on Linux). See [docs/self-healing.md](../docs/self-healing.md).

@@ -1,6 +1,10 @@
 # Self-healing loop
 
-For unattended operation, run `bin/run-loop.sh` instead of a bare interval tick.
+For unattended operation, run `bin/run-loop.sh`. It is the one native runtime: a
+long-running process that supervises each tick and keeps going through failures.
+The OS only keeps the process alive; the loop schedules its own ticks. That is
+why one model works on every platform (see "Running it" below).
+
 It supervises the normal run and keeps going through failures:
 
 - It runs a tick (`active-agent/run-cron.sh`). On success it sleeps
@@ -31,22 +35,26 @@ Turn the agent repair off with `MAILSITE_REPAIR=0` to retry without it.
 ## Running it
 
 **Docker** already runs the loop: the container's `scheduler.sh` execs
-`run-loop.sh`, so `docker compose up` is self-healing. Start the Resend listener
-separately if you use it (see [providers.md](providers.md)).
+`run-loop.sh`, so `docker compose up` is self-healing on any OS, including Windows.
+Start the Resend listener separately if you use it (see [providers.md](providers.md)).
 
-**Native**: run the loop under a supervisor so it restarts if the machine
-reboots. On macOS use the KeepAlive launchd agent:
+**Native**: install the loop as a service so it starts on boot and restarts on
+crash. One command detects your OS and installs the right supervisor:
 
 ```bash
-sed "s#REPLACE_ME/hub#$PWD#g" \
-  mailsite-agent/ops/com.mailsite.loop.plist \
-  > ~/Library/LaunchAgents/com.mailsite.loop.plist
-launchctl load ~/Library/LaunchAgents/com.mailsite.loop.plist
+bash mailsite-agent/scripts/install-service.sh install
+# also: uninstall | status | print (dry-run, installs nothing)
 ```
 
-Run the loop **or** the interval tick
-(`adapters/claude-code/com.mailsite.agent.plist`), not both. The loop is the one
-that self-heals.
+| OS | Supervisor it installs | Keep-alive mechanism |
+|----|------------------------|----------------------|
+| macOS | launchd user agent (`ops/macos/com.mailsite.loop.plist`) | `KeepAlive` |
+| Linux (systemd) | systemd **user** service (`ops/linux/mailsite-loop.service`) | `Restart=always` |
+| Linux (no systemd) | prints a cron `@reboot` + `nohup` line | cron at boot |
+| Windows | points you at Docker or WSL2 | Docker restart policy |
+
+On Linux, run `sudo loginctl enable-linger $USER` once so the user service keeps
+running when you are not logged in (the installer prints this reminder).
 
 ## Knobs
 
