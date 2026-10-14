@@ -5,9 +5,18 @@
 # Holds a lock so overlapping ticks can't double-run.
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-HUB_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+# pwd -P resolves symlinks, so invoking via the active-agent symlink still finds
+# the real hub three levels up (not two levels above it, which is how a logical
+# path through the symlink lands on /var).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+HUB_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd -P)"
 export MAILSITE_HUB="$HUB_ROOT"
+
+if [ ! -d "$HUB_ROOT/mailsite-agent" ]; then
+  echo "run-cron.sh: could not locate the hub (looked in $HUB_ROOT)." >&2
+  echo "Run it as <hub>/active-agent/run-cron.sh, or set MAILSITE_HUB." >&2
+  exit 1
+fi
 
 LOG="$HUB_ROOT/logs/run.log"
 mkdir -p "$HUB_ROOT/logs"
