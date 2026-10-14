@@ -15,8 +15,8 @@ not every service can do both. You configure them independently in
 
 | Provider | Read (poll inbox) | Send (reply) | Notes |
 |----------|:-----------------:|:------------:|-------|
-| **gmail** | ✅ poll | ✅ | Gmail REST API + OAuth2 refresh token. No dependencies. |
-| **imap**  | ✅ poll | ✅ (via SMTP) | Any IMAP host: ProtonMail (via Proton Mail Bridge), Fastmail, iCloud, generic. Needs the opt-in `imapflow`/`nodemailer`/`mailparser` packages. |
+| **gmail** | ✅ poll | ✅ | Gmail REST API + OAuth2 refresh token. No dependencies. Gmail can also be run through the `imap` provider instead (see below). |
+| **imap**  | ✅ poll | ✅ (via SMTP) | Any IMAP host: **Gmail** (app password), ProtonMail (via Proton Mail Bridge), Fastmail, iCloud, generic. Needs the opt-in `imapflow`/`nodemailer`/`mailparser` packages. |
 | **resend** | ✅ via inbound mode | ✅ | Transactional API plus an agent CLI. Send is a drop-in. Read works via Resend inbound mode (a listener plus a local state store), described below. Needs the `resend` CLI and a verified receiving domain. |
 | **claude-connector** | interactive only | interactive only | Uses Claude's Gmail MCP connector, which exists only in an interactive Claude session. A headless `claude -p` (what the scheduler runs) has no connector, so this does **not** work for the unattended job. Use it only to drive a run by hand. For the scheduler, choose `gmail` or `imap`. |
 
@@ -74,7 +74,8 @@ and send via Resend, which needs no listener.
 
 | Goal | `mail.read` | `mail.send` | Extra setup |
 |------|-------------|-------------|-------------|
-| All-Gmail (simplest) | `gmail` | `gmail` | `GMAIL_*` in `.env` |
+| All-Gmail, API | `gmail` | `gmail` | `GMAIL_*` in `.env` (OAuth) |
+| All-Gmail, app password | `imap` | `imap` | Gmail app password in `IMAP_*`/`SMTP_*`; IMAP packages |
 | ProtonMail mailbox | `imap` | `imap` | Proton Mail Bridge running; `IMAP_*` + `SMTP_*` |
 | Read Gmail, send via Resend | `gmail` | `resend` | `GMAIL_*`, `RESEND_API_KEY`, `resend.from` |
 | Read Proton, send via Resend | `imap` | `resend` | Bridge + `IMAP_*`, `RESEND_API_KEY`, `resend.from` |
@@ -86,20 +87,33 @@ One combination at a time. Switch by editing `clients.json` and the matching
 
 ## Provider setup pointers
 
-- **Gmail.** Enable the Gmail API, create an OAuth client, and get a refresh
-  token. Full step-by-step, including where each value is and how long it lasts,
-  is in [gmail-setup.md](gmail-setup.md). The short version: a Web-application
-  OAuth client with the Playground redirect URI, scopes
-  `https://www.googleapis.com/auth/gmail.modify` and `.../gmail.send`, then put
-  `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, and `GMAIL_REFRESH_TOKEN` in `.env`.
-  Publish the consent screen to Production so the refresh token does not expire
-  after 7 days.
-- **IMAP / ProtonMail.** Install Proton Mail Bridge (a paid Proton plan). It
-  gives you a local IMAP/SMTP host, port, and credentials. Put those in the
-  `imap` block of `clients.json` and the `IMAP_*`/`SMTP_*` vars in `.env`, then
-  run `npm install --prefix mailsite-agent imapflow nodemailer mailparser` (or
-  use Docker, which bundles them). IMAP state uses custom keywords, and keyword
-  support varies by server, so check that labelling works against yours.
+- **Gmail, two ways.** The `gmail` provider uses the Gmail API (OAuth); full
+  step-by-step in [gmail-setup.md](gmail-setup.md). Short version: a
+  Web-application OAuth client with the Playground redirect URI, scopes
+  `https://www.googleapis.com/auth/gmail.modify` and `.../gmail.send`, then
+  `GMAIL_CLIENT_ID`/`GMAIL_CLIENT_SECRET`/`GMAIL_REFRESH_TOKEN` in `.env`, and
+  publish the consent screen to Production so the token does not expire after 7
+  days. Alternatively, run Gmail through the `imap` provider with an **app
+  password** (next bullet), which skips OAuth, scopes, and the expiry entirely,
+  and is the lower-maintenance choice for a dedicated bot mailbox.
+- **IMAP / SMTP (Gmail, ProtonMail, Fastmail, generic).** Set `mail.read` and
+  `mail.send` to `imap`, fill the `IMAP_*`/`SMTP_*` vars in `.env`, and run
+  `npm install --prefix mailsite-agent imapflow nodemailer mailparser` (or use
+  Docker, which bundles them). Per host:
+  - **Gmail**: turn on 2-Step Verification, create an app password
+    (myaccount.google.com → Security → App passwords), and enable IMAP (Gmail →
+    Settings → Forwarding and POP/IMAP). Use `IMAP_HOST=imap.gmail.com`,
+    `IMAP_PORT=993`, `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`, the full address
+    as `IMAP_USER`/`SMTP_USER`, and the app password as both `IMAP_PASSWORD` and
+    `SMTP_PASSWORD`. The app password reads over IMAP and sends over SMTP, does
+    not expire, and needs no OAuth or verification.
+  - **ProtonMail**: install Proton Mail Bridge (a paid plan); use the local
+    host/ports/credentials it shows.
+  - **Fastmail / iCloud / generic**: use that host's IMAP/SMTP settings and an
+    app-specific password.
+
+  IMAP state uses custom keywords; Gmail maps them to labels and it works, but
+  keyword support varies by server, so check that labelling works against yours.
 - **Resend.** Verify your sending domain, create an API key (`RESEND_API_KEY`),
   and set `resend.from` to a verified sender in `clients.json`.
 

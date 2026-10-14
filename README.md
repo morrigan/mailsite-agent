@@ -13,9 +13,10 @@ Owner email ─▶ agent verifies sender ─▶ edits site ─▶ host preview
             ─▶ emails preview link ─▶ owner replies "approve" ─▶ published
 ```
 
-It runs under Claude Code or Goose. It reads and sends mail through Gmail, IMAP
-(ProtonMail via Bridge, Fastmail, any IMAP host), or Resend, and deploys to
-Netlify or Cloudflare Pages. Nothing goes live without an approval reply.
+It runs under Claude Code or Goose. It reads and sends mail through Gmail (via
+the Gmail API, or via IMAP/SMTP with an app password), any other IMAP host
+(ProtonMail via Bridge, Fastmail, iCloud), or Resend, and deploys to Netlify or
+Cloudflare Pages. Nothing goes live without an approval reply.
 [docs/architecture.md](docs/architecture.md) explains how it fits together.
 
 ## Setup
@@ -79,7 +80,7 @@ tail -f logs/run.log                   # watch runs
 - [self-healing.md](docs/self-healing.md). The supervisor loop that retries, repairs, and keeps running.
 - [architecture.md](docs/architecture.md). Ports and adapters, the run loop, and the open-source vs private split.
 - [providers.md](docs/providers.md). Mail providers, and how to choose read vs send.
-- [gmail-setup.md](docs/gmail-setup.md). Step-by-step Gmail API credentials, and how long they last.
+- [gmail-setup.md](docs/gmail-setup.md). Step-by-step Gmail API credentials (or the simpler IMAP app-password route).
 - [hosting.md](docs/hosting.md). Netlify and Cloudflare Pages.
 - [onboarding.md](docs/onboarding.md). Add a new client site.
 - [security.md](docs/security.md). The trust model and guardrails.

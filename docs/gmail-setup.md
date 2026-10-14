@@ -12,6 +12,12 @@ They all come from one Google account: the mailbox that receives update emails
 (your `updateAddress`). This page shows where to get each one. It takes about ten
 minutes and you only do it once.
 
+> Easier alternative for a Gmail bot mailbox: skip OAuth and run Gmail through
+> the `imap` provider with an **app password**. It reads over IMAP and sends over
+> SMTP with one password, and it never expires or needs app verification. See the
+> Gmail bullet under "Provider setup pointers" in [providers.md](providers.md).
+> Use the Gmail API below if you prefer OAuth or can't use app passwords.
+
 ## 1. Create or pick a Google Cloud project
 
 Go to the [Google Cloud Console](https://console.cloud.google.com/). Use the
