@@ -57,9 +57,16 @@ run_repair() {
   prompt="A scheduled run just failed. Read ${REPAIR_DOC} and follow it exactly to
 diagnose and, only if safe, fix the problem, then stop. Recent run log:
 ${recent}"
+  local bin
   case "$runner" in
-    claude-code) "${MAILSITE_CLAUDE_BIN:-claude}" -p "$prompt" >>"$LOG" 2>&1 ;;
-    goose)       "${MAILSITE_GOOSE_BIN:-goose}" run -t "$prompt" >>"$LOG" 2>&1 ;;
+    claude-code)
+      bin="${MAILSITE_CLAUDE_BIN:-$(mailsite_find_bin claude || true)}"
+      [ -n "$bin" ] || { log "claude not found for repair"; return 1; }
+      "$bin" -p "$prompt" >>"$LOG" 2>&1 ;;
+    goose)
+      bin="${MAILSITE_GOOSE_BIN:-$(mailsite_find_bin goose || true)}"
+      [ -n "$bin" ] || { log "goose not found for repair"; return 1; }
+      "$bin" run -t "$prompt" >>"$LOG" 2>&1 ;;
     *) log "unknown runner '$runner'; cannot auto-repair"; return 1 ;;
   esac
 }

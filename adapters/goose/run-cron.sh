@@ -23,9 +23,16 @@ fi
 mkdir -p "$HUB_ROOT/logs"
 LOG="$HUB_ROOT/logs/run.log"
 
-GOOSE_BIN="${MAILSITE_GOOSE_BIN:-goose}"
-if ! command -v "$GOOSE_BIN" >/dev/null 2>&1; then
-  echo "$(date -u +%FT%TZ) goose not found. Set MAILSITE_GOOSE_BIN to its absolute path, or add it to PATH (current: $PATH)." >>"$LOG"
+# Resolve the agent to an absolute path: explicit override (env or hub .env)
+# first, otherwise search the real install locations (mailsite_find_bin).
+GOOSE_BIN="${MAILSITE_GOOSE_BIN:-}"
+if [ -z "$GOOSE_BIN" ] && [ -f "$HUB_ROOT/.env" ]; then
+  GOOSE_BIN="$(sed -n 's/^MAILSITE_GOOSE_BIN=//p' "$HUB_ROOT/.env" | tail -1)"
+  GOOSE_BIN="${GOOSE_BIN%\"}"; GOOSE_BIN="${GOOSE_BIN#\"}"
+fi
+[ -n "$GOOSE_BIN" ] || GOOSE_BIN="$(mailsite_find_bin goose || true)"
+if [ -z "$GOOSE_BIN" ]; then
+  echo "$(date -u +%FT%TZ) goose not found. Set MAILSITE_GOOSE_BIN=<absolute path> in .env (find it with 'command -v goose'). PATH was: $PATH" >>"$LOG"
   exit 127
 fi
 

@@ -143,6 +143,14 @@ async function main() {
     { value: 'goose', label: 'Goose' },
   ]);
 
+  // Record the agent's absolute path now (it's on the interactive PATH here) so
+  // the scheduled job, which runs with a minimal PATH, can find it.
+  try {
+    const name = runner === 'goose' ? 'goose' : 'claude';
+    const resolved = execFileSync('bash', ['-lc', `command -v ${name}`], { encoding: 'utf8' }).trim();
+    if (resolved) env[runner === 'goose' ? 'MAILSITE_GOOSE_BIN' : 'MAILSITE_CLAUDE_BIN'] = resolved;
+  } catch { /* not found here; run-cron.sh searches common locations at runtime */ }
+
   // --- mail read -----------------------------------------------------------
   say();
   say(C.b('Mail: inbound (reading requests)'));

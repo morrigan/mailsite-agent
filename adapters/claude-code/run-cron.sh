@@ -25,9 +25,16 @@ fi
 mkdir -p "$HUB_ROOT/logs"
 LOG="$HUB_ROOT/logs/run.log"
 
-CLAUDE_BIN="${MAILSITE_CLAUDE_BIN:-claude}"
-if ! command -v "$CLAUDE_BIN" >/dev/null 2>&1; then
-  echo "$(date -u +%FT%TZ) claude not found. Set MAILSITE_CLAUDE_BIN to its absolute path, or add it to PATH (current: $PATH)." >>"$LOG"
+# Resolve the agent to an absolute path: explicit override (env or hub .env)
+# first, otherwise search the real install locations (mailsite_find_bin).
+CLAUDE_BIN="${MAILSITE_CLAUDE_BIN:-}"
+if [ -z "$CLAUDE_BIN" ] && [ -f "$HUB_ROOT/.env" ]; then
+  CLAUDE_BIN="$(sed -n 's/^MAILSITE_CLAUDE_BIN=//p' "$HUB_ROOT/.env" | tail -1)"
+  CLAUDE_BIN="${CLAUDE_BIN%\"}"; CLAUDE_BIN="${CLAUDE_BIN#\"}"
+fi
+[ -n "$CLAUDE_BIN" ] || CLAUDE_BIN="$(mailsite_find_bin claude || true)"
+if [ -z "$CLAUDE_BIN" ]; then
+  echo "$(date -u +%FT%TZ) claude not found. Set MAILSITE_CLAUDE_BIN=<absolute path> in .env (find it with 'command -v claude'). PATH was: $PATH" >>"$LOG"
   exit 127
 fi
 
