@@ -158,9 +158,13 @@ async function main() {
     { value: 'gmail', label: 'Gmail (API)' },
     { value: 'imap', label: 'IMAP, ProtonMail (Bridge), Fastmail, generic' },
     { value: 'resend', label: 'Resend (inbound mode, needs the listener)' },
-    { value: 'claude-connector', label: 'Claude Gmail connector (Claude only, zero setup)' },
+    { value: 'claude-connector', label: 'Claude Gmail connector (interactive runs only, not the scheduler)' },
   ]);
   cfg.mail.read = read;
+  if (read === 'claude-connector') {
+    say(C.dim('  note: the Gmail connector exists only in interactive Claude sessions.'));
+    say(C.dim('  The scheduled/headless job cannot use it, so pick gmail or imap for unattended runs.'));
+  }
 
   // --- mail send -----------------------------------------------------------
   say();

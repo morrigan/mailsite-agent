@@ -18,7 +18,7 @@ not every service can do both. You configure them independently in
 | **gmail** | ✅ poll | ✅ | Gmail REST API + OAuth2 refresh token. No dependencies. |
 | **imap**  | ✅ poll | ✅ (via SMTP) | Any IMAP host: ProtonMail (via Proton Mail Bridge), Fastmail, iCloud, generic. Needs the opt-in `imapflow`/`nodemailer`/`mailparser` packages. |
 | **resend** | ✅ via inbound mode | ✅ | Transactional API plus an agent CLI. Send is a drop-in. Read works via Resend inbound mode (a listener plus a local state store), described below. Needs the `resend` CLI and a verified receiving domain. |
-| **claude-connector** | ✅* | ✅* | *Only inside a Claude session via MCP, not a standalone CLI. The Claude adapter handles it. |
+| **claude-connector** | interactive only | interactive only | Uses Claude's Gmail MCP connector, which exists only in an interactive Claude session. A headless `claude -p` (what the scheduler runs) has no connector, so this does **not** work for the unattended job. Use it only to drive a run by hand. For the scheduler, choose `gmail` or `imap`. |
 
 ## Why reading is the constraint
 

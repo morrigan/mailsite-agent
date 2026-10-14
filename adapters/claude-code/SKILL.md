@@ -30,16 +30,20 @@ Use the capability CLIs for everything deterministic. Run them from the hub root
 - `mailsite-agent/scripts/optimize-image.sh <in> <out>`
 - `git` and `gh` for branch / commit / push / PR / merge.
 
-### Optional Claude-only fast path
+### Optional Claude-only fast path (interactive runs only)
 
 If `clients.json` has `"mail": { "read": "claude-connector" }`, do **not** call
 `mailsite-agent/bin/mailsite-mail` for mail. Instead perform the same mail steps
 with the Gmail MCP tools (`mcp__…Gmail__search_threads`, `get_message`, `reply`,
 `update_message_labels`, etc.), keeping the exact same state-label semantics
 defined in the PLAYBOOK. All other steps (git, deploy, image) are unchanged.
-For any other provider value (`gmail`, `imap`, `resend`), use
-`mailsite-agent/bin/mailsite-mail` as above; it routes reads and sends to the
-configured providers for you.
+
+This only works when you are running interactively with the Gmail connector
+authorized. A headless `claude -p` (the scheduler) has no connector, so if the
+Gmail tools are absent, do nothing and report that `claude-connector` needs
+`gmail` or `imap` for unattended runs. For any other provider value (`gmail`,
+`imap`, `resend`), use `mailsite-agent/bin/mailsite-mail` as above; it routes
+reads and sends to the configured providers for you.
 
 ## Your job vs. the CLIs' job
 
