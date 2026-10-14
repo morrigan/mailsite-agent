@@ -2,7 +2,9 @@
 
 The image bundles Node, ImageMagick, WebP, git, GitHub CLI, the IMAP packages,
 and the Claude Code CLI, so you install nothing natively. The container runs the
-scheduler loop; your hub is mounted at `/hub`.
+self-healing supervisor loop (`run-loop.sh`), which retries and repairs on
+failure instead of dying; see [../docs/self-healing.md](../docs/self-healing.md).
+Your hub is mounted at `/hub`.
 
 ## When Docker makes sense
 

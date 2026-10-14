@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  launchd agent for the self-healing loop (native). This is the alternative to
+  the interval tick in adapters/claude-code/com.mailsite.agent.plist: run ONE of
+  them, not both. KeepAlive restarts the loop if it ever exits.
+
+  Install:
+    1. Replace REPLACE_ME/hub with your absolute hub path (two places).
+    2. cp to ~/Library/LaunchAgents/ and:
+       launchctl load ~/Library/LaunchAgents/com.mailsite.loop.plist
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.mailsite.loop</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-lc</string>
+    <string>exec "$MAILSITE_HUB/mailsite-agent/bin/run-loop.sh"</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>REPLACE_ME/hub</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>MAILSITE_HUB</key>
+    <string>REPLACE_ME/hub</string>
+    <key>MAILSITE_INTERVAL</key>
+    <string>600</string>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+
+  <key>KeepAlive</key>
+  <true/>
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>REPLACE_ME/hub/logs/loop.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>REPLACE_ME/hub/logs/loop.err.log</string>
+</dict>
+</plist>

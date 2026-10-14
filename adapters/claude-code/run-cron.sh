@@ -39,7 +39,14 @@ cd "$HUB_ROOT"
 echo "$(date -u +%FT%TZ) tick start (claude)" >>"$LOG"
 
 # Headless, non-interactive. Permissions come from .claude/settings.json.
+# Capture the agent's real exit code (|| keeps `set -e` from aborting first) so a
+# supervisor (run-loop.sh) can see failures.
+rc=0
 claude -p "Run the process-inbox skill now: read ./PLAYBOOK.md and execute Sweep A then Sweep B." \
-  >>"$LOG" 2>&1 || echo "$(date -u +%FT%TZ) claude exited non-zero" >>"$LOG"
+  >>"$LOG" 2>&1 || rc=$?
+if [ "$rc" -ne 0 ]; then
+  echo "$(date -u +%FT%TZ) claude exited $rc" >>"$LOG"
+  exit "$rc"
+fi
 
 echo "$(date -u +%FT%TZ) tick end" >>"$LOG"

@@ -61,6 +61,11 @@ client and host; [docs/wizard.md](docs/wizard.md) explains every prompt and wher
 to find each value. To configure by hand instead, copy `clients.sample.json` to
 `clients.json` and `.env.example` to `.env` and edit them.
 
+For unattended operation, run the self-healing supervisor
+(`mailsite-agent/bin/run-loop.sh`) rather than a one-off tick. It retries,
+repairs, and keeps running through failures. Docker runs it for you. See
+[docs/self-healing.md](docs/self-healing.md).
+
 ### Then, for either option
 
 ```bash
@@ -71,6 +76,7 @@ tail -f logs/run.log                   # watch runs
 ## Documentation
 
 - [wizard.md](docs/wizard.md). Every setup-wizard prompt, and where to find each value.
+- [self-healing.md](docs/self-healing.md). The supervisor loop that retries, repairs, and keeps running.
 - [architecture.md](docs/architecture.md). Ports and adapters, the run loop, and the open-source vs private split.
 - [providers.md](docs/providers.md). Mail providers, and how to choose read vs send.
 - [hosting.md](docs/hosting.md). Netlify and Cloudflare Pages.

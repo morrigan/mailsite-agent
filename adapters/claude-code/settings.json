@@ -11,7 +11,9 @@
       "Bash(mailsite-agent/bin/mailsite-deploy:*)",
       "Bash(mailsite-agent/scripts/optimize-image.sh:*)",
       "Bash(git:*)",
-      "Bash(gh:*)"
+      "Bash(gh:*)",
+      "Bash(mkdir:*)",
+      "Bash(rmdir:*)"
     ],
     "deny": [
       "Bash(rm -rf:*)",

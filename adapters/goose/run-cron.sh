@@ -36,7 +36,14 @@ trap 'rmdir "$LOCKDIR" 2>/dev/null || true' EXIT
 cd "$HUB_ROOT"
 echo "$(date -u +%FT%TZ) tick start (goose)" >>"$LOG"
 
+# Capture the agent's real exit code (|| keeps `set -e` from aborting first) so a
+# supervisor (run-loop.sh) can see failures.
+rc=0
 goose run --recipe mailsite-agent/adapters/goose/recipe.yaml \
-  >>"$LOG" 2>&1 || echo "$(date -u +%FT%TZ) goose exited non-zero" >>"$LOG"
+  >>"$LOG" 2>&1 || rc=$?
+if [ "$rc" -ne 0 ]; then
+  echo "$(date -u +%FT%TZ) goose exited $rc" >>"$LOG"
+  exit "$rc"
+fi
 
 echo "$(date -u +%FT%TZ) tick end" >>"$LOG"

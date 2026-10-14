@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 #
-# scheduler.sh, the container entrypoint. Replaces launchd/cron inside Docker:
-# runs the active agent adapter's run-cron.sh every MAILSITE_INTERVAL seconds.
+# scheduler.sh, the container entrypoint. Runs the self-healing supervisor
+# (run-loop.sh), which ticks every MAILSITE_INTERVAL seconds and repairs and
+# retries on failure instead of dying.
 set -u
 
-INTERVAL="${MAILSITE_INTERVAL:-600}"
 HUB="${MAILSITE_HUB:-/hub}"
 cd "$HUB" || { echo "hub not mounted at $HUB"; exit 1; }
 
@@ -21,8 +21,5 @@ if [ ! -x ./active-agent/run-cron.sh ]; then
   exit 1
 fi
 
-echo "scheduler: every ${INTERVAL}s via ./active-agent/run-cron.sh"
-while true; do
-  ./active-agent/run-cron.sh || echo "run-cron exited non-zero"
-  sleep "$INTERVAL"
-done
+echo "scheduler: self-healing loop via mailsite-agent/bin/run-loop.sh"
+exec mailsite-agent/bin/run-loop.sh
