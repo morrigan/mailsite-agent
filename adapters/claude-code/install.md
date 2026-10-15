@@ -3,9 +3,10 @@
 From the hub root (the directory containing `clients.json` and `mailsite-agent/`):
 
 ```bash
-# 1. Wire the skill + permissions into the hub's .claude dir
-mkdir -p .claude/skills
-ln -sf ../../mailsite-agent/adapters/claude-code/SKILL.md .claude/skills/process-inbox.md
+# 1. Wire the skill + permissions into the hub's .claude dir.
+#    Claude Code discovers skills as directories: .claude/skills/<name>/SKILL.md
+mkdir -p .claude/skills/process-inbox
+ln -sf ../../../mailsite-agent/adapters/claude-code/SKILL.md .claude/skills/process-inbox/SKILL.md
 ln -sf ../mailsite-agent/adapters/claude-code/settings.json .claude/settings.json
 
 # 2. Select this adapter as the active runner

@@ -293,7 +293,8 @@ async function main() {
   // --- runner wiring -------------------------------------------------------
   makeSymlink(path.join(HUB, 'active-agent'), `mailsite-agent/adapters/${runner}`);
   if (runner === 'claude-code') {
-    makeSymlink(path.join(HUB, '.claude', 'skills', 'process-inbox.md'), '../../mailsite-agent/adapters/claude-code/SKILL.md');
+    // Claude Code discovers skills as directories: .claude/skills/<name>/SKILL.md.
+    makeSymlink(path.join(HUB, '.claude', 'skills', 'process-inbox', 'SKILL.md'), '../../../mailsite-agent/adapters/claude-code/SKILL.md');
     makeSymlink(path.join(HUB, '.claude', 'settings.json'), '../mailsite-agent/adapters/claude-code/settings.json');
   }
   fs.mkdirSync(path.join(HUB, 'logs'), { recursive: true });
