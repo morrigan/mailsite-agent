@@ -6,9 +6,10 @@
 //             builds: the production branch deploys to production, other
 //             branches create preview deployments.
 //   "workers" - Cloudflare Workers (incl. Workers with static assets). A
-//             git-connected Worker builds on push; each build uploads a
-//             *version* (which gets a preview URL) and, for the production
-//             branch, promotes it to a *deployment*.
+//             git-connected Worker (Workers Builds) builds on push. A PR/branch
+//             build deploys to a separate PREVIEW environment reachable at a
+//             stable per-branch alias URL; merging to the production branch
+//             deploys to production.
 //
 // In both cases the build is triggered on Cloudflare's side by the push; this
 // provider only observes the resulting state and resolves the URL.
@@ -19,6 +20,8 @@
 //   Workers: { type: "workers", workerName (or projectName), accountId?,
 //              subdomain?, productionUrl? }
 
+const { execFileSync } = require('child_process');
+const path = require('path');
 const { die } = require('../common');
 
 const API = 'https://api.cloudflare.com/client/v4';
@@ -87,19 +90,49 @@ const pages = {
 
 // --- Cloudflare Workers -----------------------------------------------------
 //
-// Workers versions carry no branch metadata (the branch/commit mapping lives in
-// the Workers Builds API, which needs a separate token scope). So we identify
-// "our" build by time: the newest version/deployment created at or after `since`
-// is the one this run's push produced. The run is single-flight (the cron
-// wrapper holds a lock), so there is only ever one build in progress, which
-// makes the newest-since-push match unambiguous. `since` defaults to the moment
-// the deploy CLI was invoked, minus a small skew; override with --since.
+// PREVIEW. A Workers Builds PR/branch build deploys to a separate preview
+// environment that the production versions/deployments API does NOT list, so we
+// cannot find it there. Instead we take the readiness from the GitHub
+// "Workers Builds" check on the PR (SUCCESS = build + deploy done) and return the
+// deterministic per-branch alias URL. When there is no PR (a manual
+// `wrangler versions upload`), we fall back to matching the newest preview-capable
+// version created at or after `since`.
+//
+// PRODUCTION. Merging to the production branch creates a normal production
+// deployment, which the deployments API does list, so publish() matches the
+// newest deployment created at or after `since` (single-flight, so unambiguous).
 
 const WORKER_SINCE_SKEW_MS = 60 * 1000;
 
 function workerName(host) {
   return host.cloudflare.workerName || host.cloudflare.scriptName
     || host.cloudflare.projectName || die('hosting.cloudflare.workerName required');
+}
+
+// Cloudflare's per-branch preview alias: lowercase, every run of non-alphanumeric
+// becomes a single dash, trimmed, capped at a 63-char DNS label.
+function sanitizeBranch(b) {
+  return String(b).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 63);
+}
+function branchAliasUrl(name, branch, sub) {
+  return sub ? `https://${sanitizeBranch(branch)}-${name}.${sub}.workers.dev` : null;
+}
+
+// Read the "Workers Builds" GitHub check for a PR from the client's repo:
+// 'success' | 'failure' | 'pending' (not finished / not created yet) | 'unknown'
+// (gh missing or not a repo, treated as keep-waiting).
+function workersBuildsCheck(cfg, client, pr) {
+  const cwd = path.join(cfg._hubRoot || process.cwd(), client.repoPath || '.');
+  let out;
+  try {
+    out = execFileSync('gh', ['pr', 'view', String(pr), '--json', 'statusCheckRollup'],
+      { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  } catch { return 'unknown'; }
+  let checks;
+  try { checks = JSON.parse(out).statusCheckRollup || []; } catch { return 'unknown'; }
+  const c = checks.find((x) => /workers builds/i.test(x.name || ''));
+  if (!c || c.status !== 'COMPLETED') return 'pending';
+  return c.conclusion === 'SUCCESS' ? 'success' : 'failure';
 }
 
 function sinceMs(opts) {
@@ -135,6 +168,23 @@ const workers = {
   async preview(cfg, client, host, opts, poll) {
     const { token, account } = base(host);
     const name = workerName(host);
+    const sub = await workerSubdomain(token, account, host);
+
+    // Git-build PR previews: wait for the Workers Builds check, return the alias.
+    if (opts.pr && opts.branch) {
+      const url = branchAliasUrl(name, opts.branch, sub);
+      const res = await poll(async () => {
+        const st = workersBuildsCheck(cfg, client, opts.pr);
+        if (st === 'success') return { done: true, value: 'ready' };
+        if (st === 'failure') return { done: true, value: 'error' };
+        return { done: false, value: null }; // pending / unknown -> keep waiting
+      });
+      if (!res) return { state: 'timeout', url: null };
+      return { state: res, url: res === 'ready' ? url : null };
+    }
+
+    // Fallback (no PR, e.g. a manual `wrangler versions upload`): newest
+    // preview-capable version created at or after `since`.
     const since = sinceMs(opts);
     const hit = await poll(async () => {
       const r = await cf(token, `/accounts/${account}/workers/scripts/${name}/versions`);
@@ -145,7 +195,6 @@ const workers = {
       return { done: !!ours, value: ours };
     });
     if (!hit) return { state: 'timeout', url: null };
-    const sub = await workerSubdomain(token, account, host);
     return { state: 'ready', url: versionPreviewUrl(name, hit.id, sub), versionId: hit.id };
   },
 

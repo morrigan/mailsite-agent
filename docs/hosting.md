@@ -46,21 +46,29 @@ URLs; it does not push the files itself.
 |---|---|---|---|
 | **Netlify** | PR / branch deploy | push to production branch | deploy's `deploy_ssl_url`, or `deploy-preview-<PR>--<site>.netlify.app` |
 | **Cloudflare Pages** | push to a non-production branch | push to production branch | deployment `aliases[0]` / `url` (`*.pages.dev`) |
-| **Cloudflare Workers** | branch build uploads a version | production build promotes a deployment | version preview `<id-prefix>-<worker>.<subdomain>.workers.dev`; production custom domain or `<worker>.<subdomain>.workers.dev` |
+| **Cloudflare Workers** | Workers Builds PR build (preview environment) | merge to production branch | preview: per-branch alias `<branch>-<worker>.<subdomain>.workers.dev`; production: custom domain or `<worker>.<subdomain>.workers.dev` |
 
 The per-site setup is the same on either host: connect the repo and enable
 preview deployments for branches and PRs.
 
 ### A note on the Workers preview match
 
-Worker versions carry no branch name (that mapping lives in the Workers Builds
-API, which needs a separate token scope). So the Workers provider identifies a
-build by time: the newest version created at or after the run started is the one
-this run's push produced. The cron wrapper holds a lock, so only one build is
-ever in flight, which keeps the match unambiguous. If you drive a run by hand
-long after the push, pass `--since <epoch|ISO>` to `mailsite-deploy` to set that
-baseline yourself. Preview URLs must be enabled for the Worker (they are, by
-default, whenever `workers.dev` is on).
+A Workers Builds PR build deploys to a separate **preview environment**. That
+preview does **not** appear in the Worker's production versions/deployments API,
+so the provider cannot find it there. Instead it reads the **"Workers Builds"
+GitHub check** on the PR (via `gh`, which the agent already uses): once the check
+is `SUCCESS` the build and deploy are done, and the provider returns the stable
+per-branch alias URL, `<sanitized-branch>-<worker>.<subdomain>.workers.dev`
+(slashes and other non-alphanumerics become `-`). This needs the Worker connected
+through Workers Builds with preview URLs on (the default when `workers.dev` is
+enabled), the repo on GitHub, and `gh` authenticated.
+
+Production uses the real deployment: `publish` waits for the newest production
+deployment created since the merge.
+
+With no PR (a manual `wrangler versions upload`), preview falls back to matching
+the newest preview-capable version created at or after the run started; pass
+`--since <epoch|ISO>` to set that baseline when driving a run by hand.
 
 ## Credentials (.env)
 
