@@ -1,12 +1,31 @@
-# mailsite-agent
+<div align="center">
 
-**Let non-technical site owners update their static website by sending an email.**
+<h1>✉️ mailsite-agent</h1>
+
+<p><strong>Let non-technical site owners update their static website by sending an email.</strong></p>
+
+<p>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="package.json"><img src="https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg" alt="Node >= 18"></a>
+  <img src="https://img.shields.io/badge/core%20dependencies-zero-success.svg" alt="Zero core dependencies">
+  <img src="https://img.shields.io/badge/runs%20on-Claude%20Code%20%7C%20Goose-5A67D8.svg" alt="Runs on Claude Code or Goose">
+  <img src="https://img.shields.io/badge/publish-requires%20owner%20approval-orange.svg" alt="Publishing requires owner approval">
+</p>
+
+<p>
+  <a href="#setup">Setup</a> ·
+  <a href="#documentation">Documentation</a> ·
+  <a href="docs/architecture.md">Architecture</a> ·
+  <a href="docs/security.md">Security</a>
+</p>
+
+</div>
 
 You build someone a static site (by hand, or with a coding agent) and host it on
-Netlify or Cloudflare (Pages or Workers). Later the owner wants to change some text or add a
-photo. Instead of learning git or pinging you, they email the change. An agent
-checks who sent it, makes the edit, builds a preview, and emails back the link.
-The owner replies "approve" and it goes live.
+Netlify or Cloudflare (Pages or Workers). Later the owner wants to change some
+text or add a photo. Instead of learning git or pinging you, they email the
+change. An agent checks who sent it, makes the edit, builds a preview, and emails
+back the link. The owner replies "approve" and it goes live.
 
 ```
 Owner email ─▶ agent verifies sender ─▶ edits site ─▶ host preview
@@ -17,8 +36,7 @@ It runs under Claude Code or Goose. It reads and sends mail through Gmail (via
 the Gmail API, or via IMAP/SMTP with an app password), any other IMAP host
 (ProtonMail via Bridge, Fastmail, iCloud), or Resend, and deploys to Netlify,
 Cloudflare Pages, or Cloudflare Workers. Nothing goes live without an approval
-reply.
-[docs/architecture.md](docs/architecture.md) explains how it fits together.
+reply. [docs/architecture.md](docs/architecture.md) explains how it fits together.
 
 ## Setup
 
