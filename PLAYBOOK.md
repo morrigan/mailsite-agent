@@ -41,40 +41,46 @@ mail labels and git branches, so every run is idempotent and safe to re-run.
 
 ### Sweep A: intake new requests
 
-1. `mailsite-agent/bin/mailsite-mail fetch-new` → array of `{msgId, from, subject}` for emails
-   that have no state label yet.
+1. `mailsite-agent/bin/mailsite-mail fetch-new` → array of `{msgId, threadId, from, subject}`
+   for emails that have no state label yet and whose thread is not already tracked.
 2. For each message:
    a. `get <msgId>` for full `{from, subject, body, attachments[]}`.
-   b. **Authorize.** Find the client in `clients.json` where `from` ∈
+   b. **Skip replies to tracked threads.** A reply in a thread we already handle
+      (for example an "approve" or a correction) has no state label of its own, so
+      it can surface here. If the message's `threadId` already carries a
+      `WebUpdate/*` state (i.e. it belongs to a request from a previous sweep),
+      leave it untouched for Sweep B. Do **not** label it `Rejected`, even if it
+      has no secret word, that reply is not a new request.
+   c. **Authorize.** Find the client in `clients.json` where `from` ∈
       `authorizedSenders` and `secretWord` appears in the `subject` **or** the
       `body` (case-insensitive, whole word). No match → `label <msgId> Rejected`,
       optionally `reply` with a brief polite note, then skip. Do not reveal the
       secret word or the list of clients in any reply.
-   c. `label <msgId> InProgress`.
-   d. `download-attachments <msgId> logs/staging/<msgId>/`. Only keep image types
+   d. `label <msgId> InProgress`.
+   e. `download-attachments <msgId> logs/staging/<msgId>/`. Only keep image types
       (jpg/jpeg/png/webp/gif/heic). Ignore anything else.
-   e. In `sites/<clientId>`: `git fetch`, create branch
+   f. In `sites/<clientId>`: `git fetch`, create branch
       `update/<YYYYMMDD>-<msgId-short>` from `<productionBranch>`.
-   f. For each image: `mailsite-agent/scripts/optimize-image.sh` it into the site's existing
+   g. For each image: `mailsite-agent/scripts/optimize-image.sh` it into the site's existing
       asset/image directory (match where current images live). Pick descriptive
       filenames from context; never overwrite an existing file unless the request
       clearly means "replace this photo".
-   g. **Your judgment (the whole point of using an agent).** Author the requested
+   h. **Your judgment (the whole point of using an agent).** Author the requested
       change directly in the site's source. Read the relevant page(s), locate the
       section the owner means, and write new HTML that matches the existing markup
       and style. This authoring step is yours; everything around it is a CLI call.
       Content only, see Guardrails.
-   h. `git add -A && git commit` with a message summarizing the request. Push the
+   i. `git add -A && git commit` with a message summarizing the request. Push the
       branch. `gh pr create` with a title and body summarizing the change.
-   i. Call `mailsite-agent/bin/mailsite-deploy preview <clientId> --branch <branch> --pr <PR#>`.
+   j. Call `mailsite-agent/bin/mailsite-deploy preview <clientId> --branch <branch> --pr <PR#>`.
       It blocks until the preview is `ready`, the same whether the client is on
       Netlify or Cloudflare (the provider comes from config). On `state=="error"`
       or `"timeout"`, label it `NeedsHuman`, notify the developer (see Error
       handling), and skip.
-   j. Write a plain-language summary to a temp file: what you changed, the preview
+   k. Write a plain-language summary to a temp file: what you changed, the preview
       URL, and the line "Reply APPROVE to publish, or reply and tell me what to
       fix." Then `reply <msgId> --body-file <that file>`.
-   k. `label <msgId> AwaitingApproval`.
+   l. `label <msgId> AwaitingApproval`.
 
 ---
 

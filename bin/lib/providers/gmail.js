@@ -73,22 +73,36 @@ module.exports = {
 
   async fetchNew(cfg, { label } = {}) {
     const tok = await token();
-    let q;
+
+    const hydrate = async (messages) => {
+      const results = [];
+      for (const { id } of messages || []) {
+        const msg = await gapi(tok, `/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject`);
+        const h = headersOf(msg.payload);
+        results.push({ msgId: id, threadId: msg.threadId, from: h.from || '', subject: h.subject || '' });
+      }
+      return results;
+    };
+
     if (label) {
       if (!STATES.includes(label)) die(`Unknown state: ${label}`);
-      q = `label:${cfg.labelPrefix}/${label}`;
-    } else {
-      const excl = STATES.map((s) => `-label:${cfg.labelPrefix}/${s}`).join(' ');
-      q = `to:(${cfg.updateAddress}) newer_than:14d ${excl}`;
+      const list = await gapi(tok, `/messages?q=${encodeURIComponent(`label:${cfg.labelPrefix}/${label}`)}`);
+      return hydrate(list.messages);
     }
+
+    // Intake: messages to the update address carrying no state label. Also drop
+    // any whose THREAD is already tracked, so a reply (e.g. "approve") to a
+    // pending or closed request is not mistaken for a new request. Those replies
+    // are handled by Sweep B via thread-replies. Gmail labels one message, so the
+    // reply itself has no label; filtering by thread is what catches it.
+    const excl = STATES.map((s) => `-label:${cfg.labelPrefix}/${s}`).join(' ');
+    const q = `to:(${cfg.updateAddress}) newer_than:14d ${excl}`;
     const list = await gapi(tok, `/messages?q=${encodeURIComponent(q)}`);
-    const results = [];
-    for (const { id } of list.messages || []) {
-      const msg = await gapi(tok, `/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject`);
-      const h = headersOf(msg.payload);
-      results.push({ msgId: id, threadId: msg.threadId, from: h.from || '', subject: h.subject || '' });
-    }
-    return results;
+    const trackedQ = `{${STATES.map((s) => `label:${cfg.labelPrefix}/${s}`).join(' ')}}`; // {a b} = a OR b
+    const tracked = await gapi(tok, `/messages?q=${encodeURIComponent(trackedQ)}`);
+    const trackedThreads = new Set((tracked.messages || []).map((m) => m.threadId));
+    const fresh = (list.messages || []).filter((m) => !trackedThreads.has(m.threadId));
+    return hydrate(fresh);
   },
 
   async get(cfg, msgId) {
