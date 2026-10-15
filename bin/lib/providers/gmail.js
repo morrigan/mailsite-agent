@@ -163,14 +163,19 @@ module.exports = {
   // Send half. `msg` = {to, subject, inReplyTo, references, threadId, body}.
   async send(cfg, msg) {
     const tok = await token();
-    const mime = [
+    // Build headers separately from the body: filter() drops the optional empty
+    // In-Reply-To/References lines, then a literal blank line (CRLF CRLF) must
+    // separate headers from the body. Filtering them together would also drop
+    // that separator, and the body would be parsed as headers (an empty email).
+    const headers = [
       `To: ${msg.to}`,
       `Subject: ${reSubject(msg.subject)}`,
       msg.inReplyTo ? `In-Reply-To: ${msg.inReplyTo}` : '',
       msg.references ? `References: ${msg.references}` : '',
       'Content-Type: text/plain; charset="UTF-8"',
-      'MIME-Version: 1.0', '', msg.body,
-    ].filter(Boolean).join('\r\n');
+      'MIME-Version: 1.0',
+    ].filter(Boolean);
+    const mime = `${headers.join('\r\n')}\r\n\r\n${msg.body || ''}`;
     const sent = await gapi(tok, '/messages/send', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ raw: b64urlEncode(mime), threadId: msg.threadId }),
