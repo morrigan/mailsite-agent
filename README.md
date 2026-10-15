@@ -4,12 +4,13 @@
 
 <p><strong>Let non-technical site owners update their static website by sending an email.</strong></p>
 
+<p><img src="demo.gif" alt="An emailed change request becoming a live site update" width="760"></p>
+
 <p>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
   <a href="package.json"><img src="https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg" alt="Node >= 18"></a>
   <img src="https://img.shields.io/badge/core%20dependencies-zero-success.svg" alt="Zero core dependencies">
   <img src="https://img.shields.io/badge/runs%20on-Claude%20Code%20%7C%20Goose-5A67D8.svg" alt="Runs on Claude Code or Goose">
-  <img src="https://img.shields.io/badge/publish-requires%20owner%20approval-orange.svg" alt="Publishing requires owner approval">
 </p>
 
 <p>
