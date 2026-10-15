@@ -44,12 +44,12 @@ mail labels and git branches, so every run is idempotent and safe to re-run.
 1. `mailsite-agent/bin/mailsite-mail fetch-new` → array of `{msgId, from, subject}` for emails
    that have no state label yet.
 2. For each message:
-   a. `get <msgId>` for full `{from, body, attachments[]}`.
+   a. `get <msgId>` for full `{from, subject, body, attachments[]}`.
    b. **Authorize.** Find the client in `clients.json` where `from` ∈
-      `authorizedSenders` and `secretWord` appears in `body` (case-insensitive,
-      whole word). No match → `label <msgId> Rejected`, optionally `reply` with a
-      brief polite note, then skip. Do not reveal the secret word or the list of
-      clients in any reply.
+      `authorizedSenders` and `secretWord` appears in the `subject` **or** the
+      `body` (case-insensitive, whole word). No match → `label <msgId> Rejected`,
+      optionally `reply` with a brief polite note, then skip. Do not reveal the
+      secret word or the list of clients in any reply.
    c. `label <msgId> InProgress`.
    d. `download-attachments <msgId> logs/staging/<msgId>/`. Only keep image types
       (jpg/jpeg/png/webp/gif/heic). Ignore anything else.

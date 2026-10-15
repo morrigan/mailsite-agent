@@ -77,8 +77,8 @@ The site you hand off. One client now; add more later with
 - **Display name.** A human-readable name for the business. Defaults to the id.
 - **Authorized sender email(s).** The exact `From` addresses allowed to request
   changes, comma-separated. Anything else is rejected.
-- **Secret word.** A shared word the owner must include in the email body, 6+
-  characters. It is a second check on top of the sender allowlist, because a
+- **Secret word.** A shared word the owner must include in the email subject or
+  body, 6+ characters. It is a second check on top of the sender allowlist, because a
   `From` header can be faked. Share it with the owner privately.
 - **Production branch.** The branch that deploys to the live site, usually
   `main`.

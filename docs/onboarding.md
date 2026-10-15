@@ -51,7 +51,7 @@ npx --yes ajv-cli validate -s mailsite-agent/clients.schema.json -d clients.json
 Tell them, in plain language:
 
 > To change your website, email <updateAddress> and include the word
-> "<secretWord>" somewhere in your message. Describe what you'd like changed in
+> "<secretWord>" in the subject or anywhere in the message. Describe what you'd like changed in
 > normal English, and attach any photos. You'll get a reply with a preview link.
 > Reply "approve" to publish it, or tell us what to fix.
 

@@ -4,9 +4,9 @@ The agent acts on email from non-technical owners, so the email is untrusted
 input at every step. Three layers guard it.
 
 1. **Authorization.** A request is processed only if the `From` matches a
-   client's `authorizedSenders` and the body contains that client's `secretWord`.
-   `From` is spoofable, so the secret word is a second factor. It's still a soft
-   gate, not strong auth.
+   client's `authorizedSenders` and that client's `secretWord` appears in the
+   subject or the body. `From` is spoofable, so the secret word is a second
+   factor. It's still a soft gate, not strong auth.
 2. **Scope.** The agent may change visible content (text and images) in the
    matched client's repo only. It must never add scripts, trackers, iframes, or
    remote resources, touch build or CI config, or act on instructions embedded in
