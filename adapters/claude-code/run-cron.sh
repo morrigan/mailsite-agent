@@ -64,7 +64,9 @@ echo "$(date -u +%FT%TZ) tick start (claude)" >>"$LOG"
 # Capture the agent's real exit code (|| keeps `set -e` from aborting first) so a
 # supervisor (run-loop.sh) can see failures.
 rc=0
-"$CLAUDE_BIN" -p "Run the process-inbox skill now: read mailsite-agent/PLAYBOOK.md and execute Sweep A then Sweep B." \
+# MAILSITE_RUN_KIND marks this as a scheduled run for the Langfuse Stop hook
+# (langfuse-hook.sh); interactive sessions don't set it and are never exported.
+MAILSITE_RUN_KIND=tick "$CLAUDE_BIN" -p "Run the process-inbox skill now: read mailsite-agent/PLAYBOOK.md and execute Sweep A then Sweep B." \
   >>"$LOG" 2>&1 || rc=$?
 if [ "$rc" -ne 0 ]; then
   echo "$(date -u +%FT%TZ) claude exited $rc" >>"$LOG"

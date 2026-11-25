@@ -21,5 +21,18 @@
       "Read(**/.env)"
     ]
   },
-  "enableAllProjectMcpServers": false
+  "enableAllProjectMcpServers": false,
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/mailsite-agent/adapters/claude-code/langfuse-hook.sh",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
 }

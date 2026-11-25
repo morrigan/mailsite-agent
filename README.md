@@ -106,6 +106,7 @@ tail -f logs/run.log                   # watch runs
 - [hosting.md](docs/hosting.md). Netlify, Cloudflare Pages, and Cloudflare Workers.
 - [onboarding.md](docs/onboarding.md). Add a new client site.
 - [security.md](docs/security.md). The trust model and guardrails.
+- [langfuse.md](docs/langfuse.md). Optional tracing of every run in Langfuse, with secrets masked.
 - [ports-and-adapters.md](docs/ports-and-adapters.md). Add a mail or deploy provider, or a new agent.
 - [PLAYBOOK.md](PLAYBOOK.md). The runbook the agent executes each run.
 

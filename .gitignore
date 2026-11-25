@@ -1,4 +1,5 @@
 node_modules/
+__pycache__/
 *.log
 .DS_Store
 # Private per-user data lives in the parent hub, never in this repo:

@@ -28,6 +28,14 @@ RUN npm install -g @anthropic-ai/claude-code
 RUN npm install -g imapflow nodemailer mailparser resend-cli
 ENV NODE_PATH=/usr/local/lib/node_modules
 
+# Optional Langfuse tracing hook (docs/langfuse.md). Inert unless LANGFUSE_* keys
+# are set in the hub .env. Keep the version in sync with scripts/setup-langfuse.sh.
+RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-venv \
+  && rm -rf /var/lib/apt/lists/* \
+  && python3 -m venv /opt/langfuse-venv \
+  && /opt/langfuse-venv/bin/pip install --no-cache-dir --quiet "langfuse==5.2.0"
+ENV MAILSITE_LANGFUSE_PYTHON=/opt/langfuse-venv/bin/python
+
 ENV MAILSITE_HUB=/hub
 WORKDIR /hub
 

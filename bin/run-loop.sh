@@ -63,7 +63,7 @@ ${recent}"
     claude-code)
       bin="${MAILSITE_CLAUDE_BIN:-$(mailsite_find_bin claude || true)}"
       [ -n "$bin" ] || { log "claude not found for repair"; return 1; }
-      "$bin" -p "$prompt" >>"$LOG" 2>&1 ;;
+      MAILSITE_RUN_KIND=repair "$bin" -p "$prompt" >>"$LOG" 2>&1 ;;
     goose)
       bin="${MAILSITE_GOOSE_BIN:-$(mailsite_find_bin goose || true)}"
       [ -n "$bin" ] || { log "goose not found for repair"; return 1; }
